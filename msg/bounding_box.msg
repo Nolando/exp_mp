@@ -1,0 +1,1 @@
+int8[] data # Corners of a bounding box -> top left, top right, bottom left, bottom right

@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import String
-from sensor_msgs.msg import Image
+import numpy as np
+
+from exp_mp.msg import bounding_box
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
 
 # Initialize the CvBridge class
 bridge = CvBridge()    
@@ -25,7 +28,13 @@ def image_callback(img_msg):
         rospy.logerr("CvBridge Error: {0}".format(e))
 
     # Show the converted image
-    show_image(cv_image)
+    # show_image(cv_image)
+
+def bound_callback(box):
+
+    rospy.loginfo("Bounding box received")
+
+    print(box)
 
 def listener():
 
@@ -34,7 +43,7 @@ def listener():
     rospy.init_node('listener', anonymous=True)
 
     rospy.Subscriber("webcam", Image, image_callback)
-    rospy.Subscriber("detect_people", )
+    rospy.Subscriber("bounding_box", bounding_box, bound_callback)
 
     # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
     while not rospy.is_shutdown():
