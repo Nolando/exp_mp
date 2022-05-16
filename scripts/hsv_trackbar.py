@@ -3,7 +3,8 @@
 # TEMPORARY SCRIPT TO TEST THE HSV THRESHOLDS - ADJUST ACCORDINGLY
 
 
-# RUN THIS FIRST FOR EXECUTABLE: chmod +x src/exp_mp/scripts/listener.py
+# SET AS EXECUTABLE: chmod +x src/exp_mp/scripts/listener.py
+# TO RUN: rosrun exp_mp hsv_trackbar.py
 
 
 import rospy

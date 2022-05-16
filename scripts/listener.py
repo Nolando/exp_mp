@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # Machine Unlearning
 
-# RUN THIS FIRST FOR EXECUTABLE: chmod +x src/exp_mp/scripts/listener.py
+# RUN: roslaunch exp_mp realsense.launch
+
 # FOR REALSENSE INSTALL: sudo apt-get install ros-melodic-realsense2-camera
-
 # FOR REALSENSE INFO: https://github.com/IntelRealSense/realsense-ros
-# roslaunch realsense2_camera rs_camera.launch 
-
 
 
 import rospy
@@ -29,6 +27,7 @@ red_high_limit = np.array([180, 255, 255])
 
 #################################################################################
 def image_callback(img_msg):
+    
     # log some info about the image topic
     rospy.loginfo("Image received")
 
@@ -65,7 +64,7 @@ def colour_segmentaion(img):
     # show_image(mask)
 
     # Morphological open to help detections, kernel size 10x10 pixels
-    kernel = np.ones((4, 4), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     img_bw = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
 
     # Display the red shirt detection
