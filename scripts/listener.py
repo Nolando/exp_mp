@@ -1,16 +1,25 @@
 #!/usr/bin/env python
 # Machine Unlearning
 
+# RUN THIS FIRST FOR EXECUTABLE: chmod +x src/exp_mp/scripts/listener.py
+# FOR REALSENSE INSTALL: sudo apt-get install ros-melodic-realsense2-camera
+
+# FOR REALSENSE INFO: https://github.com/IntelRealSense/realsense-ros
+# roslaunch realsense2_camera rs_camera.launch 
+
+
+
 import rospy
 import cv2 as cv
 import numpy as np
 from std_msgs.msg import String
 from exp_mp.msg import bounding_box
 from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage, Image
+
 
 # Initialize the CvBridge class
-bridge = CvBridge()    
+bridge = CvBridge()
 
 # Set the limits for the colours (in HSV)
 red_low_limit = np.array([140, 30, 0])          # Red
@@ -20,17 +29,6 @@ red_high_limit = np.array([179, 255, 255])
 
 
 #################################################################################
-# Define a function to show the image in an OpenCV Window
-def show_image(img):
-
-    # Flip camera feed for correct orientation
-    flipped_img = cv.flip(img, -1)
-
-    # Display the image
-    cv.imshow("Image Window", flipped_img)
-    cv.waitKey(3)
-
-#################################################################################
 def image_callback(img_msg):
     # log some info about the image topic
     rospy.loginfo("Image received")
@@ -38,11 +36,23 @@ def image_callback(img_msg):
     # Try to convert the ROS Image message to a CV2 Image
     try:
         cv_image = bridge.imgmsg_to_cv2(img_msg, "bgr8")
+        # cv_image = bridge.compressed_imgmsg_to_cv2(img_msg)
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
 
     # Show the converted image
-    # show_image(cv_image)
+    show_image(cv_image)
+
+    # Colour segmentation
+    colour_segmentaion(cv_image)
+
+#################################################################################
+# Define a function to show the image in an OpenCV Window
+def show_image(img):
+
+    # Display the image
+    cv.imshow("Image Window", img)
+    cv.waitKey(3)
 
 #################################################################################
 # Script segments the colours based on t shirt colour: using RED and GREEN
@@ -52,14 +62,14 @@ def colour_segmentaion(img):
     hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
     # Threshold the image for red (HSV colour space)
-    thresh = cv.inRange(hsv, red_low_limit, red_high_limit)
+    red_thresh = cv.inRange(hsv, red_low_limit, red_high_limit)
 
     # Morphological open to help detections, kernel size 10x10 pixels
     kernel = np.ones((10, 10), np.uint8)
-    img_bw = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
+    img_bw = cv.morphologyEx(red_thresh, cv.MORPH_OPEN, kernel)
 
     # Display the red shirt detection
-    # view_image("Red Shirt Detection", img_bw)
+    # show_image(img_bw)
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(img_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -70,8 +80,10 @@ def colour_segmentaion(img):
 
         # Calculate the area of the region
         area = cv.contourArea(c)
-        print(area)
-    
+        # print(area)
+
+        # Compare if the detected blob is in the bounding box
+        # If so, change the returned boolean value
     
 
 #################################################################################
@@ -82,13 +94,18 @@ def bound_callback(box):
     print(box)
 
 #################################################################################
+# /camera/color/camera_info
+# /camera/color/image_raw
+# /camera/color/image_raw/compressed
+
 def listener():
 
     print('Initiating listener')
 
     rospy.init_node('listener', anonymous=True)
 
-    rospy.Subscriber("webcam", Image, image_callback)
+    # rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, image_callback)
+    rospy.Subscriber("/camera/color/image_raw", Image, image_callback)
     rospy.Subscriber("bounding_box", bounding_box, bound_callback)
 
     # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
