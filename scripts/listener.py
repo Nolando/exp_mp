@@ -17,13 +17,12 @@ from exp_mp.msg import bounding_box
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage, Image
 
-
 # Initialize the CvBridge class
 bridge = CvBridge()
 
 # Set the limits for the colours (in HSV)
-red_low_limit = np.array([140, 30, 0])          # Red
-red_high_limit = np.array([179, 255, 255])
+red_low_limit = np.array([150, 120, 90])           # Red
+red_high_limit = np.array([180, 255, 255])
 # green_low_limit = np.array([140, 30, 0])          # Green
 # green_high_limit = np.array([179, 255, 255])
 
@@ -35,23 +34,23 @@ def image_callback(img_msg):
 
     # Try to convert the ROS Image message to a CV2 Image
     try:
-        cv_image = bridge.imgmsg_to_cv2(img_msg, "bgr8")
-        # cv_image = bridge.compressed_imgmsg_to_cv2(img_msg)
+        # cv_image = bridge.imgmsg_to_cv2(img_msg, "bgr8")
+        cv_image = bridge.compressed_imgmsg_to_cv2(img_msg)
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
 
     # Show the converted image
-    show_image(cv_image)
+    show_image("Converted Image", cv_image)
 
     # Colour segmentation
     colour_segmentaion(cv_image)
 
 #################################################################################
 # Define a function to show the image in an OpenCV Window
-def show_image(img):
+def show_image(window_name, img):
 
     # Display the image
-    cv.imshow("Image Window", img)
+    cv.imshow(window_name, img)
     cv.waitKey(3)
 
 #################################################################################
@@ -62,14 +61,15 @@ def colour_segmentaion(img):
     hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
     # Threshold the image for red (HSV colour space)
-    red_thresh = cv.inRange(hsv, red_low_limit, red_high_limit)
+    mask = cv.inRange(hsv, red_low_limit, red_high_limit)
+    # show_image(mask)
 
     # Morphological open to help detections, kernel size 10x10 pixels
-    kernel = np.ones((10, 10), np.uint8)
-    img_bw = cv.morphologyEx(red_thresh, cv.MORPH_OPEN, kernel)
+    kernel = np.ones((4, 4), np.uint8)
+    img_bw = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
 
     # Display the red shirt detection
-    # show_image(img_bw)
+    show_image("Red segmented", img_bw)
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(img_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -104,8 +104,8 @@ def listener():
 
     rospy.init_node('listener', anonymous=True)
 
-    # rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, image_callback)
-    rospy.Subscriber("/camera/color/image_raw", Image, image_callback)
+    rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, image_callback)
+    # rospy.Subscriber("/camera/color/image_raw", Image, image_callback)
     rospy.Subscriber("bounding_box", bounding_box, bound_callback)
 
     # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
