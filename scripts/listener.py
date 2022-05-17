@@ -27,7 +27,7 @@ red_high_limit = np.array([180, 255, 255])
 
 #################################################################################
 def image_callback(img_msg):
-    
+
     # log some info about the image topic
     rospy.loginfo("Image received")
 
@@ -93,8 +93,6 @@ def bound_callback(box):
     print(box)
 
 #################################################################################
-# /camera/color/camera_info
-# /camera/color/image_raw
 # /camera/color/image_raw/compressed
 
 def listener():
