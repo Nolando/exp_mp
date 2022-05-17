@@ -15,6 +15,8 @@ from exp_mp.msg import bounding_box
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage, Image
 
+import pub_bounding_box
+
 # Initialize the CvBridge class
 bridge = CvBridge()
 
@@ -41,8 +43,12 @@ def image_callback(img_msg):
     # Show the converted image
     show_image("Converted Image", cv_image)
 
+    # Get the bounding box
+    hog = cv.HOGDescriptor()
+    pub_bounding_box.HOG_features(cv_image, hog)
+
     # Colour segmentation
-    colour_segmentaion(cv_image)
+    # colour_segmentaion(cv_image)
 
 #################################################################################
 # Define a function to show the image in an OpenCV Window
