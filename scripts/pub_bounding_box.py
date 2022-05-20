@@ -29,6 +29,10 @@ from exp_mp.msg import bounding_box
 # - use TUT 7 for help - layout
 
 #################################################################################
+#################################################################################
+# DON'T THINK I'M USING THIS ANYMORE, INCLUDE IN REPORT HOWEVER + INCLUDE IN FUTURE WORK SECTION AND IMPROVEMENTS
+#################################################################################
+#################################################################################
 # HOG features
 # WILL BE USING HOG FEATURES WITH SVM TO TRAIN ALGORITHM
 def HOG_features(frame, hog):

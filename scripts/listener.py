@@ -114,6 +114,11 @@ def red_colour_segmentaion(img):
     
     # print(x_start, x_end, y_start, y_end)
 
+    # To do:
+    # - figure out if red (differentiate from green/ other colours)
+    # - do bounding box over all the tshirt - assume tshirt height is fixed
+    # - try fill in the binary image
+
     
 
 #################################################################################
