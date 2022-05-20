@@ -10,10 +10,12 @@
 import rospy
 import cv2 as cv
 import numpy as np
+import copy
 from std_msgs.msg import String
 from exp_mp.msg import bounding_box
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage, Image
+from itertools import product
 
 import pub_bounding_box
 
@@ -21,8 +23,10 @@ import pub_bounding_box
 bridge = CvBridge()
 
 # Set the limits for the colours (in HSV)
-red_low_limit = np.array([150, 120, 90])           # Red
-red_high_limit = np.array([180, 255, 255])
+red_low_limit_lower = np.array([0, 100, 90])           # Red
+red_high_limit_lower = np.array([5, 255, 255])
+red_low_limit_upper = np.array([150, 100, 90])           # Red
+red_high_limit_upper = np.array([180, 255, 255])
 # green_low_limit = np.array([140, 30, 0])          # Green
 # green_high_limit = np.array([179, 255, 255])
 
@@ -44,11 +48,11 @@ def image_callback(img_msg):
     show_image("Converted Image", cv_image)
 
     # Get the bounding box
-    hog = cv.HOGDescriptor()
-    pub_bounding_box.HOG_features(cv_image, hog)
+    # hog = cv.HOGDescriptor()
+    # pub_bounding_box.HOG_features(cv_image, hog)
 
     # Colour segmentation
-    # colour_segmentaion(cv_image)
+    red_colour_segmentaion(cv_image)
 
 #################################################################################
 # Define a function to show the image in an OpenCV Window
@@ -59,22 +63,28 @@ def show_image(window_name, img):
     cv.waitKey(3)
 
 #################################################################################
-# Script segments the colours based on t shirt colour: using RED and GREEN
-def colour_segmentaion(img):
+# Script segments the colours based on t-shirt colour: using RED and GREEN
+def red_colour_segmentaion(img):
 
     # Convert RGB into HSV
     hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
     # Threshold the image for red (HSV colour space)
-    mask = cv.inRange(hsv, red_low_limit, red_high_limit)
+    mask_lower = cv.inRange(hsv, red_low_limit_lower, red_high_limit_lower)
+    mask_upper = cv.inRange(hsv, red_low_limit_upper, red_low_limit_upper)
+
+    # Combine the masks
+    mask = cv.bitwise_or(mask_lower, mask_upper)
     # show_image(mask)
 
-    # Morphological open to help detections, kernel size 10x10 pixels
-    kernel = np.ones((3, 3), np.uint8)
-    img_bw = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    # Morphological close to help detections with large kernel size - filters out noise
+    kernel = np.ones((30, 30), np.uint8)
+    img_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    show_image("Red segmented", img_bw)
+    # show_image("Red segmented", img_bw)
+
+    # Things to consider: area check in case of other objects
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(img_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -85,10 +95,25 @@ def colour_segmentaion(img):
 
         # Calculate the area of the region
         area = cv.contourArea(c)
-        # print(area)
 
-        # Compare if the detected blob is in the bounding box
-        # If so, change the returned boolean value
+        # Filter out any small colour detections
+        if area > 5000:
+            # print(area)
+            perimeter = cv.drawContours(img, [c], 0, (0,255,0), 3)
+            show_image("Red outline", perimeter)
+
+
+    
+    # Get the maximum and minimum detected points in x and y direction
+    # - With camera flat: y(0) at top of frame, x(0) on left side from show_image
+    result = np.where(img_bw == np.amax(img_bw))
+    y_start = np.min(result[0])
+    y_end = np.max(result[0])
+    x_start = np.min(result[1])
+    x_end = np.max(result[1])
+    
+    # print(x_start, x_end, y_start, y_end)
+
     
 
 #################################################################################
