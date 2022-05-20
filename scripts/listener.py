@@ -17,6 +17,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage, Image
 from itertools import product
 
+import facialRecognition
 import pub_bounding_box
 
 # Initialize the CvBridge class
@@ -45,14 +46,17 @@ def image_callback(img_msg):
         rospy.logerr("CvBridge Error: {0}".format(e))
 
     # Show the converted image
-    show_image("Converted Image", cv_image)
+    # show_image("Converted Image", cv_image)
+
+    face_recognised = facialRecognition.faceDetect(cv_image)
+    show_image("Face Image", face_recognised)
 
     # Get the bounding box
     # hog = cv.HOGDescriptor()
     # pub_bounding_box.HOG_features(cv_image, hog)
 
     # Colour segmentation
-    red_colour_segmentaion(cv_image)
+    # red_colour_segmentaion(cv_image)
 
 #################################################################################
 # Define a function to show the image in an OpenCV Window
