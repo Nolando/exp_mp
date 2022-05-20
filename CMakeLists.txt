@@ -164,6 +164,7 @@ catkin_install_python(PROGRAMS
   scripts/dummy_image.py
   scripts/listener.py
   scripts/pub_bounding_box.py
+  scripts/ros_serial_test.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
