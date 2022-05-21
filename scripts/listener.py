@@ -6,7 +6,7 @@
 # FOR REALSENSE INSTALL: sudo apt-get install ros-melodic-realsense2-camera
 # FOR REALSENSE INFO: https://github.com/IntelRealSense/realsense-ros
 
-
+import os
 import rospy
 import cv2 as cv
 import numpy as np
@@ -56,17 +56,16 @@ def camera_callback(frame):
         # Add the bounding box to the current frame
         for (x, y, w, h) in face_bounding_box:
             cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            show_image("Converted Image", cv_frame)
 
     # Colour segmentation
-    shirt_bounding_box = red_colour_segmentation(cv_frame)          # np.ndarray if detected, tuple if empty
+    shirt_bounding_box = red_colour_segmentation(cv_frame)          # np.ndarray
 
-    if shirt_bounding_box is not tuple():       
+    if shirt_bounding_box.size is not 0:       
         rospy.loginfo('Shirt bounding box is: ' + np.array2string(shirt_bounding_box))
 
         # Add bounding box to image frame
-        cv.rectangle(cv_frame, (shirt_bounding_box[0], shirt_bounding_box[1]), 
-                               (shirt_bounding_box[2], shirt_bounding_box[3]), (0, 0, 255), 2)
+        for (x1, y1, x2, y2) in shirt_bounding_box:
+            cv.rectangle(cv_frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
     
     # Show the detected features with bounding boxes
     show_image("Converted Image", cv_frame)
@@ -91,7 +90,7 @@ def show_image(window_name, frame):
 def red_colour_segmentation(frame):
 
     # Initially empty bounding box
-    shirt_box = tuple()
+    shirt_box = []
 
     # Convert RGB into HSV
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -108,9 +107,9 @@ def red_colour_segmentation(frame):
     frame_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    # show_image("Red segmented", frame_bw)
+    show_image("Red segmented", frame_bw)
 
-    # Things to consider: area check in case of other objects
+    # ALL GOOD UP TO HERE - DETECTING TWO REDS, PROBLEM IS WITH THE LOGIC IN NEXT PART
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(frame_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -127,15 +126,16 @@ def red_colour_segmentation(frame):
 
             # Show detection message
             rospy.loginfo("Detected red shirt")
-            
-            # Perimeter shows the outline of the detected area
-            # perimeter = cv.drawContours(frame, [c], 0, (0,255,0), 3)
 
             # Get the bounding box for the shirt
             x,y,w,h = cv.boundingRect(c)
-            shirt_box = np.array([x, y, x+w, y+h])
+            current_box = [x, y, x+w, y+h]
 
-    # Return the bounding box
+            # Append to the list of detected shirt boxes
+            shirt_box.append(current_box)
+            
+    # Return the bounding box as a numpy array
+    shirt_box = np.array(shirt_box)
     return shirt_box
 
     # To do:

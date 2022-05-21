@@ -5,13 +5,21 @@
 
 # Packages
 import cv2 as cv
+import numpy as np
 #import matplotlib.pyplot as plt
 #import cvlib as cv
 
-def faceDetect(currentImage):
+def faceDetect(img):
+
     # Get the current image frame and make a greyscale copy
-    #currentImage = cv.imread("artists.jpg")
-    currentImageGrey = cv.cvtColor(currentImage, cv.COLOR_BGR2GRAY)
+    img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+    # Decrease the resolution of the image slightly for faster speed
+    percentage_decrease = 75
+    width = int(img_gray.shape[1] * percentage_decrease / 100)
+    height = int(img_gray.shape[0] * percentage_decrease / 100)
+    dim = (width, height)
+    img_gray = cv.resize(img_gray, dim, interpolation=cv.INTER_AREA)
 
     # Get the face cascade classifier
     cascadePath = 'haarcascade_frontalface_default.xml'
@@ -19,12 +27,19 @@ def faceDetect(currentImage):
 
     # Detect faces in the image as a bounding box
     faces = faceCascade.detectMultiScale(
-        currentImageGrey,
-        scaleFactor=1.1,        # Attempting to tune this was originally: 1.1
-        minNeighbors=5,
+        img_gray,
+        scaleFactor=1.12,           # Attempting to tune this was originally 1.1
+        minNeighbors=5,             # Can adjust to fix latency also, originally was 5
         minSize=(30, 30),
         flags = cv.CASCADE_SCALE_IMAGE
     )
+
+    # Test if face was detected in the frame
+    if faces is not tuple():
+
+        # Convert box coordiantes back to original frame resolution
+        faces = faces * (100 / percentage_decrease)
+        faces = np.array(faces, int)
 
     return faces
 
@@ -32,7 +47,7 @@ def faceDetect(currentImage):
 
 
     # Detect face
-    # faces, confidences = cv.detect_face(currentImage)
+    # faces, confidences = cv.detect_face(img)
 
     # # Add a bounding box around each face
     # for c in confidences:
