@@ -4,38 +4,29 @@
 # of the person's face is also calculated.
 
 # Packages
-import cv2
+import cv2 as cv
 #import matplotlib.pyplot as plt
 #import cvlib as cv
 
 def faceDetect(currentImage):
     # Get the current image frame and make a greyscale copy
-    #currentImage = cv2.imread("artists.jpg")
-    currentImageGrey = cv2.cvtColor(currentImage, cv2.COLOR_BGR2GRAY)
+    #currentImage = cv.imread("artists.jpg")
+    currentImageGrey = cv.cvtColor(currentImage, cv.COLOR_BGR2GRAY)
 
     # Get the face cascade classifier
-    # cascadePath = 'haarcascade_frontalface_default.xml'
-    faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    # faceCascade = cv2.CascadeClassifier(cascadePath)
+    cascadePath = 'haarcascade_frontalface_default.xml'
+    faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
 
-    # Detect faces in the image
+    # Detect faces in the image as a bounding box
     faces = faceCascade.detectMultiScale(
         currentImageGrey,
-        scaleFactor=1.1,
+        scaleFactor=1.1,        # Attempting to tune this was originally: 1.1
         minNeighbors=5,
         minSize=(30, 30),
-        flags = cv2.CASCADE_SCALE_IMAGE
+        flags = cv.CASCADE_SCALE_IMAGE
     )
 
-    #print("Found {0} faces!".format(len(faces)))
-
-    # Draw a rectangle around the faces
-    for (x, y, w, h) in faces:
-        cv2.rectangle(currentImage, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-    # cv2.imshow("Faces found", currentImage)
-    # cv2.waitKey(0)
-    return currentImage
+    return faces
 
 
 

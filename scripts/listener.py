@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Machine Unlearning
 
 # RUN: roslaunch exp_mp realsense.launch
@@ -33,45 +33,68 @@ red_high_limit_upper = np.array([180, 255, 255])
 
 
 #################################################################################
-def image_callback(img_msg):
+def camera_callback(frame):
 
     # log some info about the image topic
-    rospy.loginfo("Image received")
+    rospy.loginfo("CAMERA FRAME RECEIVED")
 
-    # Try to convert the ROS Image message to a CV2 Image
+    # Convert the frame from a ROS Image message to a CV2 Image
     try:
-        # cv_image = bridge.imgmsg_to_cv2(img_msg, "bgr8")
-        cv_image = bridge.compressed_imgmsg_to_cv2(img_msg)
+        cv_frame = bridge.compressed_imgmsg_to_cv2(frame)
+    
+    # Error message if failed
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
 
-    # Show the converted image
-    # show_image("Converted Image", cv_image)
+    # Get the face bounding box
+    face_bounding_box = facialRecognition.faceDetect(cv_frame)      # np.ndarray if detected, tuple if empty
 
-    face_recognised = facialRecognition.faceDetect(cv_image)
-    show_image("Face Image", face_recognised)
+    # Test if face was detected in the frame
+    if face_bounding_box is not tuple():
+        rospy.loginfo('Face bounding box is: ' + np.array2string(face_bounding_box))
 
-    # Get the bounding box
-    # hog = cv.HOGDescriptor()
-    # pub_bounding_box.HOG_features(cv_image, hog)
+        # Add the bounding box to the current frame
+        for (x, y, w, h) in face_bounding_box:
+            cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            show_image("Converted Image", cv_frame)
 
     # Colour segmentation
-    # red_colour_segmentaion(cv_image)
+    shirt_bounding_box = red_colour_segmentation(cv_frame)          # np.ndarray if detected, tuple if empty
+
+    if shirt_bounding_box is not tuple():       
+        rospy.loginfo('Shirt bounding box is: ' + np.array2string(shirt_bounding_box))
+
+        # Add bounding box to image frame
+        cv.rectangle(cv_frame, (shirt_bounding_box[0], shirt_bounding_box[1]), 
+                               (shirt_bounding_box[2], shirt_bounding_box[3]), (0, 0, 255), 2)
+    
+    # Show the detected features with bounding boxes
+    show_image("Converted Image", cv_frame)
+
+
+
+
+    # Get the bounding box - Superceded but keep in for reporting and referencing
+    # hog = cv.HOGDescriptor()
+    # pub_bounding_box.HOG_features(cv_frame, hog)
 
 #################################################################################
 # Define a function to show the image in an OpenCV Window
-def show_image(window_name, img):
+def show_image(window_name, frame):
 
-    # Display the image
-    cv.imshow(window_name, img)
+    # Display the image frame
+    cv.imshow(window_name, frame)
     cv.waitKey(3)
 
 #################################################################################
 # Script segments the colours based on t-shirt colour: using RED and GREEN
-def red_colour_segmentaion(img):
+def red_colour_segmentation(frame):
+
+    # Initially empty bounding box
+    shirt_box = tuple()
 
     # Convert RGB into HSV
-    hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
     # Threshold the image for red (HSV colour space)
     mask_lower = cv.inRange(hsv, red_low_limit_lower, red_high_limit_lower)
@@ -79,19 +102,18 @@ def red_colour_segmentaion(img):
 
     # Combine the masks
     mask = cv.bitwise_or(mask_lower, mask_upper)
-    # show_image(mask)
 
     # Morphological close to help detections with large kernel size - filters out noise
     kernel = np.ones((30, 30), np.uint8)
-    img_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+    frame_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    # show_image("Red segmented", img_bw)
+    # show_image("Red segmented", frame_bw)
 
     # Things to consider: area check in case of other objects
 
     # Find the valid contours in the bw image for the regions detected
-    contours = cv.findContours(img_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours = cv.findContours(frame_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     contours = contours[0] if len(contours) == 2 else contours[1]
 
      # Loop through the detected contours
@@ -102,21 +124,19 @@ def red_colour_segmentaion(img):
 
         # Filter out any small colour detections
         if area > 5000:
-            # print(area)
-            perimeter = cv.drawContours(img, [c], 0, (0,255,0), 3)
-            show_image("Red outline", perimeter)
 
+            # Show detection message
+            rospy.loginfo("Detected red shirt")
+            
+            # Perimeter shows the outline of the detected area
+            # perimeter = cv.drawContours(frame, [c], 0, (0,255,0), 3)
 
-    
-    # Get the maximum and minimum detected points in x and y direction
-    # - With camera flat: y(0) at top of frame, x(0) on left side from show_image
-    result = np.where(img_bw == np.amax(img_bw))
-    y_start = np.min(result[0])
-    y_end = np.max(result[0])
-    x_start = np.min(result[1])
-    x_end = np.max(result[1])
-    
-    # print(x_start, x_end, y_start, y_end)
+            # Get the bounding box for the shirt
+            x,y,w,h = cv.boundingRect(c)
+            shirt_box = np.array([x, y, x+w, y+h])
+
+    # Return the bounding box
+    return shirt_box
 
     # To do:
     # - figure out if red (differentiate from green/ other colours)
@@ -141,7 +161,7 @@ def listener():
 
     rospy.init_node('listener', anonymous=True)
 
-    rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, image_callback)
+    rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback)
     # rospy.Subscriber("/camera/color/image_raw", Image, image_callback)
     rospy.Subscriber("bounding_box", bounding_box, bound_callback)
 
