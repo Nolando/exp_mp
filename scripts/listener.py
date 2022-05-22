@@ -42,6 +42,9 @@ def camera_callback(frame):
     # log some info about the image topic
     rospy.loginfo("CAMERA FRAME RECEIVED")
 
+    # Initially empty bounding box
+    whole_bounding_box = []
+
     # Convert the frame from a ROS Image message to a CV2 Image
     try:
         bridged_frame = bridge.compressed_imgmsg_to_cv2(frame)
@@ -56,23 +59,40 @@ def camera_callback(frame):
     # Get the face bounding box
     face_bounding_box = facialRecognition.faceDetect(cv_frame, faceCascade)      # np.ndarray if detected, tuple if empty
 
-    # Test if face was detected in the frame
-    if face_bounding_box is not tuple():
-        rospy.loginfo('Face bounding box is: ' + np.array2string(face_bounding_box))
-
-        # Add the bounding box to the current frame
-        for (x, y, w, h) in face_bounding_box:
-            cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
     # Colour segmentation
     shirt_bounding_box = red_colour_segmentation(cv_frame)          # np.ndarray
 
-    if shirt_bounding_box.size is not 0:       
+    # Test if face was detected and red shirt was found
+    if shirt_bounding_box.size is not 0 and face_bounding_box is not tuple():       
+
+        # Log message
+        rospy.loginfo('Face bounding box is: ' + np.array2string(face_bounding_box))
         rospy.loginfo('Shirt bounding box is: ' + np.array2string(shirt_bounding_box))
 
-        # Add bounding box to image frame
-        for (x1, y1, x2, y2) in shirt_bounding_box:
-            cv.rectangle(cv_frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        # Loop through to test the detected bounding boxes
+        for (xf, yf, wf, hf) in face_bounding_box:
+            for (xs, ys, ws, hs) in shirt_bounding_box:
+
+                # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
+                if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
+                    
+                    # Get the total bounding box of the torso
+                    whole_bounding_box.append([xs, yf, ws, hf+hs])
+
+        # Convert to numpy
+        whole_bounding_box = np.array(whole_bounding_box)
+
+        # Add bounding box to the frame
+        for (x, y, w, h) in whole_bounding_box:
+            cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        
+        # # Add green bounding box to the current frame
+        # for (x, y, w, h) in face_bounding_box:
+        #     cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+        # # Add red bounding box to image frame
+        # for (x, y, w, h) in shirt_bounding_box:
+        #     cv.rectangle(cv_frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
     
     # Show the detected features with bounding boxes
     show_image("Converted Image", cv_frame)
@@ -136,7 +156,7 @@ def red_colour_segmentation(frame):
 
             # Get the bounding box for the shirt
             x,y,w,h = cv.boundingRect(c)
-            current_box = [x, y, x+w, y+h]
+            current_box = [x, y, w, h]
 
             # Append to the list of detected shirt boxes
             shirt_box.append(current_box)

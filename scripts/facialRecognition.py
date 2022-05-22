@@ -45,6 +45,7 @@ def faceDetect(img, faceCascade):
         faces = faces * (100 / percentage_decrease)
         faces = np.array(faces, int)
 
+    # Return the face bounding box
     return faces
 
 
