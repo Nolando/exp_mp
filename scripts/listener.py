@@ -31,6 +31,10 @@ red_high_limit_upper = np.array([180, 255, 255])
 # green_low_limit = np.array([140, 30, 0])          # Green
 # green_high_limit = np.array([179, 255, 255])
 
+# Initialise the face cascade classifier (done outside of function to try improve latency)
+# + LATENCY fixed by setting camera subscriber queue size to 1
+cascadePath = 'haarcascade_frontalface_default.xml'
+faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
 
 #################################################################################
 def camera_callback(frame):
@@ -40,14 +44,17 @@ def camera_callback(frame):
 
     # Convert the frame from a ROS Image message to a CV2 Image
     try:
-        cv_frame = bridge.compressed_imgmsg_to_cv2(frame)
+        bridged_frame = bridge.compressed_imgmsg_to_cv2(frame)
+
+        # Flip the camera feed along y axis for correct orientation
+        cv_frame = cv.flip(bridged_frame, 1)
     
     # Error message if failed
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
 
     # Get the face bounding box
-    face_bounding_box = facialRecognition.faceDetect(cv_frame)      # np.ndarray if detected, tuple if empty
+    face_bounding_box = facialRecognition.faceDetect(cv_frame, faceCascade)      # np.ndarray if detected, tuple if empty
 
     # Test if face was detected in the frame
     if face_bounding_box is not tuple():
@@ -157,12 +164,12 @@ def bound_callback(box):
 
 def listener():
 
+    # Initilaise the node
+    rospy.init_node('listener', anonymous=True)
     print('Initiating listener')
 
-    rospy.init_node('listener', anonymous=True)
-
-    rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback)
-    # rospy.Subscriber("/camera/color/image_raw", Image, image_callback)
+    # Subscriber callbacks
+    rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback, queue_size=1)
     rospy.Subscriber("bounding_box", bounding_box, bound_callback)
 
     # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed

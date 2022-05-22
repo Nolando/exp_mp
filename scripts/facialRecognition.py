@@ -9,21 +9,25 @@ import numpy as np
 #import matplotlib.pyplot as plt
 #import cvlib as cv
 
-def faceDetect(img):
+# # Initialise the face cascade classifier (done outside of function)
+# cascadePath = 'haarcascade_frontalface_default.xml'
+# faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
+
+def faceDetect(img, faceCascade):
 
     # Get the current image frame and make a greyscale copy
     img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Decrease the resolution of the image slightly for faster speed
-    percentage_decrease = 75
+    percentage_decrease = 50
     width = int(img_gray.shape[1] * percentage_decrease / 100)
     height = int(img_gray.shape[0] * percentage_decrease / 100)
     dim = (width, height)
     img_gray = cv.resize(img_gray, dim, interpolation=cv.INTER_AREA)
 
-    # Get the face cascade classifier
-    cascadePath = 'haarcascade_frontalface_default.xml'
-    faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
+    # # Get the face cascade classifier
+    # cascadePath = 'haarcascade_frontalface_default.xml'
+    # faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
 
     # Detect faces in the image as a bounding box
     faces = faceCascade.detectMultiScale(
