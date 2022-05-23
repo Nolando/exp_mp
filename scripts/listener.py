@@ -28,8 +28,8 @@ red_low_limit_lower = np.array([0, 100, 90])           # Red
 red_high_limit_lower = np.array([5, 255, 255])
 red_low_limit_upper = np.array([150, 100, 90])           # Red
 red_high_limit_upper = np.array([180, 255, 255])
-# green_low_limit = np.array([140, 30, 0])          # Green
-# green_high_limit = np.array([179, 255, 255])
+green_low_limit = np.array([140, 30, 0])          # Green
+green_high_limit = np.array([179, 255, 255])
 
 # Initialise the face cascade classifier (done outside of function to try improve latency)
 # + LATENCY fixed by setting camera subscriber queue size to 1
@@ -43,7 +43,8 @@ def camera_callback(frame):
     rospy.loginfo("CAMERA FRAME RECEIVED")
 
     # Initially empty bounding box
-    whole_bounding_box = []
+    whole_bounding_box_R = []
+    whole_bounding_box_G = []
 
     # Convert the frame from a ROS Image message to a CV2 Image
     try:
@@ -51,48 +52,56 @@ def camera_callback(frame):
 
         # Flip the camera feed along y axis for correct orientation
         cv_frame = cv.flip(bridged_frame, 1)
+
+        # Convert RGB into HSV
+        hsv_frame = cv.cvtColor(cv_frame, cv.COLOR_BGR2HSV)
     
     # Error message if failed
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
 
     # Get the face bounding box
-    face_bounding_box = facialRecognition.faceDetect(cv_frame, faceCascade)      # np.ndarray if detected, tuple if empty
+    face_bounding_box = facialRecognition.faceDetect(hsv_frame, faceCascade)      # np.ndarray if detected, tuple if empty
 
-    # Colour segmentation
-    shirt_bounding_box = red_colour_segmentation(cv_frame)          # np.ndarray
+    # Get the red and green colour masks
+    mask_R = red_mask(hsv_frame)
+    mask_G = green_mask(hsv_frame)
 
-    # Test if face was detected and red shirt was found
-    if shirt_bounding_box.size is not 0 and face_bounding_box is not tuple():       
+    # Colour segment to get the bounding box for shirts for red and green
+    shirt_bounding_box_R = colour_segmentation(mask_R)          # np.ndarray
+    shirt_bounding_box_G = colour_segmentation(mask_G)
+
+    # Test if face was detected and either red or green shirt was found
+    if (shirt_bounding_box_R.size is not 0 or shirt_bounding_box_G.size is not 0) and face_bounding_box is not tuple():       
 
         # Log message
         rospy.loginfo('Face bounding box is: ' + np.array2string(face_bounding_box))
-        rospy.loginfo('Shirt bounding box is: ' + np.array2string(shirt_bounding_box))
-
+        rospy.loginfo('RED shirt bounding box is: ' + np.array2string(shirt_bounding_box_R))
+        rospy.loginfo('GREEN shirt bounding box is: ' + np.array2string(shirt_bounding_box_G))
+        
         # Loop through to test the detected bounding boxes
         for (xf, yf, wf, hf) in face_bounding_box:
-            for (xs, ys, ws, hs) in shirt_bounding_box:
+            for (xs, ys, ws, hs) in shirt_bounding_box_R:
 
                 # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
                 if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
                     
                     # Get the total bounding box of the torso
-                    whole_bounding_box.append([xs, yf, ws, hf+hs])
+                    whole_bounding_box_R.append([xs, yf, ws, hf+hs])
+
+            for (xs, ys, ws, hs) in shirt_bounding_box_G:
+                if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
+                    whole_bounding_box_G.append([xs, yf, ws, hf+hs])
 
         # Convert to numpy
-        whole_bounding_box = np.array(whole_bounding_box)
+        whole_bounding_box_R = np.array(whole_bounding_box_R)
+        whole_bounding_box_G = np.array(whole_bounding_box_G)
 
         # Add bounding box to the frame
-        for (x, y, w, h) in whole_bounding_box:
+        for (x, y, w, h) in whole_bounding_box_R:
             cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        
-        # # Add green bounding box to the current frame
-        # for (x, y, w, h) in face_bounding_box:
-        #     cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-        # # Add red bounding box to image frame
-        # for (x, y, w, h) in shirt_bounding_box:
-        #     cv.rectangle(cv_frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+        for (x, y, w, h) in whole_bounding_box_G:
+            cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
     
     # Show the detected features with bounding boxes
     show_image("Converted Image", cv_frame)
@@ -113,30 +122,37 @@ def show_image(window_name, frame):
     cv.waitKey(3)
 
 #################################################################################
+# The red colour masks
+def red_mask(frame):
+
+    # Threshold the image for red (HSV colour space)
+    mask_lower = cv.inRange(frame, red_low_limit_lower, red_high_limit_lower)
+    mask_upper = cv.inRange(frame, red_low_limit_upper, red_low_limit_upper)
+
+    # Combine the masks and return to caller
+    mask = cv.bitwise_or(mask_lower, mask_upper)
+    return mask
+
+# Green colour mask
+def green_mask(frame):
+
+    # Threshold the image with preset low and high HSV limits
+    mask = cv.inRange(frame, green_low_limit, green_high_limit)
+    return mask
+
+#################################################################################
 # Script segments the colours based on t-shirt colour: using RED and GREEN
-def red_colour_segmentation(frame):
+def colour_segmentation(mask):
 
     # Initially empty bounding box
     shirt_box = []
-
-    # Convert RGB into HSV
-    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-
-    # Threshold the image for red (HSV colour space)
-    mask_lower = cv.inRange(hsv, red_low_limit_lower, red_high_limit_lower)
-    mask_upper = cv.inRange(hsv, red_low_limit_upper, red_low_limit_upper)
-
-    # Combine the masks
-    mask = cv.bitwise_or(mask_lower, mask_upper)
 
     # Morphological close to help detections with large kernel size - filters out noise
     kernel = np.ones((30, 30), np.uint8)
     frame_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    show_image("Red segmented", frame_bw)
-
-    # ALL GOOD UP TO HERE - DETECTING TWO REDS, PROBLEM IS WITH THE LOGIC IN NEXT PART
+    # show_image("Segmented", frame_bw)
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(frame_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -149,7 +165,7 @@ def red_colour_segmentation(frame):
         area = cv.contourArea(c)
 
         # Filter out any small colour detections
-        if area > 5000:
+        if area > 2000:
 
             # Show detection message
             rospy.loginfo("Detected red shirt")
@@ -163,14 +179,7 @@ def red_colour_segmentation(frame):
             
     # Return the bounding box as a numpy array
     shirt_box = np.array(shirt_box)
-    return shirt_box
-
-    # To do:
-    # - figure out if red (differentiate from green/ other colours)
-    # - do bounding box over all the tshirt - assume tshirt height is fixed
-    # - try fill in the binary image
-
-    
+    return shirt_box    
 
 #################################################################################
 def bound_callback(box):
@@ -188,7 +197,11 @@ def listener():
     rospy.init_node('listener', anonymous=True)
     print('Initiating listener')
 
+    # Set the ROS spin rate: 1Hz ~ 1 second
+    rate = rospy.Rate(1)
+
     # Subscriber callbacks
+    # rospy.Subscriber("/camera/color/image_raw/compressed_slow", CompressedImage, camera_callback, queue_size=1)
     rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback, queue_size=1)
     rospy.Subscriber("bounding_box", bounding_box, bound_callback)
 

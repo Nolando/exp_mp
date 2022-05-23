@@ -90,6 +90,9 @@ def image_callback(img_msg):
 # Define a function to show the image in an OpenCV Window
 def show_image(window_name, img):
 
+    # Flip the camera feed along y axis for correct orientation
+    img = cv.flip(img, 1)
+
     # Display the image
     cv.imshow(window_name, img)
     cv.waitKey(3)
