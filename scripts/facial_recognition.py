@@ -48,6 +48,7 @@ def camera_callback(frame):
         # PUBLISH THE BOUNDING BOX
         face_box_pub.publish(face_bounding_box)
 
+        neural_network()
         # Test for checking box is correct
         # for (x, y, w, h) in face_bounding_box:
         #     cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
@@ -96,7 +97,7 @@ def recognise_face():
     # Initilaise the node and display message 
     rospy.init_node('facial_recognition', anonymous=True)
     rospy.loginfo('facial_recognition\tNODE INIT')
-
+    neural_network()
     # Set the ROS spin rate: 1Hz ~ 1 second
     rate = rospy.Rate(1)        ############ Can make this an argument in launch and streamline rates##############
 
@@ -118,7 +119,7 @@ def neural_network():
     # Get the training images
     trainset = [cv.imread(file) for file in glob.glob('faces/*.jpg')]
 
-    plt.imshow(trainset[0])
+    plt.imshow(trainset[0]) # SAYS OUT OF RANGE, CAN'T SEE THE IMAGES?
     #plt.show()
 
     #print(trainset)
@@ -132,8 +133,7 @@ def neural_network():
     #                                        download=True, 
     #                                        transform=custom_transform)
 
-    # Connect to webcam to get live testing dataset
-    #testset = testingData
+    # Subscribe to the face box node to get the next testing data
     testset = face_box_sub
 
     ################################ Dataloaders ###########################################################
@@ -177,7 +177,8 @@ def neural_network():
     class Network(nn.Module):
 
         def __init__(self):
-            """Define the layers of the network."""
+
+            # Define the NN layers
             self.output_size = 10   # 10 classes
 
             super(Network, self).__init__()
@@ -189,7 +190,8 @@ def neural_network():
             self.fc3 = nn.Linear(84, self.output_size)  # Fully connected layer
 
         def forward(self, x):
-            """Define the forward pass."""
+            
+            # Define the forward pass
             x = self.pool(functional.relu(self.conv1(x)))
             x = self.pool(functional.relu(self.conv2(x)))
             x = x.view(-1, 16 * 5 * 5)
@@ -207,6 +209,7 @@ def neural_network():
     ################################ Train the neural network with the training data #######################
     for epoch in range(5):    # we are using 5 epochs. Typically 100-200
         running_loss = 0.0
+
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels = data
