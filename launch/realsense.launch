@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
 <!-- 
     Launch file launches the realsense camera
 -->
@@ -8,9 +10,29 @@
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     </include>
 
-    <!-- Launches the listener node using the listener.py executable from the 
-    exp_mp package. Respawns node if quit and output is to terminal screen -->
-    <node name="listener" pkg="exp_mp" type="listener.py" respawn="true" 
-        output="screen"/>
+    <!-- NODE EXECUTABLES: NEED TO CHMOD OR SUDO CHMOD THE EXECUTABLE FOR THIS TO WORK -->
+
+    <!-- Facial recognition node reads from the realsense camera and detects face bounding boxes -->
+    <node   name="facial_recognition" 
+            pkg="exp_mp" 
+            type="facial_recognition.py" 
+            respawn="true"
+            output="screen"/>
+
+    <!-- Shirt colour detection node reads from the realsense camera and detects shirt bounding boxes -->
+    <node   name="shirt_detection" 
+            pkg="exp_mp" 
+            type="shirt_colour_detection.py" 
+            respawn="true"
+            output="screen"/>
+
+    <!-- Launches the listener node using the listener.py executable from the exp_mp package. Respawns 
+         node if quit and output is to terminal screen  -->
+    <node   name="listener" 
+            pkg="exp_mp" 
+            type="listener.py" 
+            respawn="true" 
+            output="screen"/>
+    
 
 </launch>
