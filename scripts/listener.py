@@ -23,39 +23,41 @@ def camera_callback(frame):
     # log some info about the image topic
     rospy.loginfo("CAMERA FRAME RECEIVED")
 
-    # Initially empty bounding box
-    whole_bounding_box_R = []
-    whole_bounding_box_G = []
-
-    # Test if face was detected and either red or green shirt was found
-    if (shirt_bounding_box_R.size is not 0 or shirt_bounding_box_G.size is not 0) and face_bounding_box is not tuple():       
-        
-        # Loop through to test the detected bounding boxes
-        for (xf, yf, wf, hf) in face_bounding_box:
-            for (xs, ys, ws, hs) in shirt_bounding_box_R:
-
-                # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
-                if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
-                    
-                    # Get the total bounding box of the torso
-                    whole_bounding_box_R.append([xs, yf, ws, hf+hs])
-
-            for (xs, ys, ws, hs) in shirt_bounding_box_G:
-                if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
-                    whole_bounding_box_G.append([xs, yf, ws, hf+hs])
-
-        # Convert to numpy
-        whole_bounding_box_R = np.array(whole_bounding_box_R)
-        whole_bounding_box_G = np.array(whole_bounding_box_G)
-
-        # Add bounding box to the frame
-        for (x, y, w, h) in whole_bounding_box_R:
-            cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        for (x, y, w, h) in whole_bounding_box_G:
-            cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    # CHANGE TO LOGIC OF BOTH BOXES....
     
-    # Show the detected features with bounding boxes
-    show_image("Converted Image", cv_frame)
+    # # Initially empty bounding box
+    # whole_bounding_box_R = []
+    # whole_bounding_box_G = []
+
+    # # Test if face was detected and either red or green shirt was found
+    # if (shirt_bounding_box_R.size is not 0 or shirt_bounding_box_G.size is not 0) and face_bounding_box is not tuple():       
+        
+    #     # Loop through to test the detected bounding boxes
+    #     for (xf, yf, wf, hf) in face_bounding_box:
+    #         for (xs, ys, ws, hs) in shirt_bounding_box_R:
+
+    #             # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
+    #             if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
+                    
+    #                 # Get the total bounding box of the torso
+    #                 whole_bounding_box_R.append([xs, yf, ws, hf+hs])
+
+    #         for (xs, ys, ws, hs) in shirt_bounding_box_G:
+    #             if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
+    #                 whole_bounding_box_G.append([xs, yf, ws, hf+hs])
+
+    #     # Convert to numpy
+    #     whole_bounding_box_R = np.array(whole_bounding_box_R)
+    #     whole_bounding_box_G = np.array(whole_bounding_box_G)
+
+    #     # Add bounding box to the frame
+    #     for (x, y, w, h) in whole_bounding_box_R:
+    #         cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    #     for (x, y, w, h) in whole_bounding_box_G:
+    #         cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    
+    # # Show the detected features with bounding boxes
+    # show_image("Converted Image", cv_frame)
 
 #################################################################################
 def see_face(box):
