@@ -17,7 +17,7 @@ from rospy_tutorials.msg import Floats
 
 
 #################################################################################
-# CHANGE TO LOGIC OF HAVING BOTH BOUNDING BOXES AND GETTING WHOLE BOX
+# CHANGE TO LOGIC OF HAVING BOTH BOUNDING BOXES AND GETTING WHOLE BOX (TORSO)
 def camera_callback(frame):
 
     # log some info about the image topic
