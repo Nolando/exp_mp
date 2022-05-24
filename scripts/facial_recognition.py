@@ -117,14 +117,16 @@ def neural_network():
         [torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
+
+
     # Training data path
-    trainingPath = '~/ur5espace/src/exp_mp/scripts/faces'
+    trainingPath = os.getcwd() + '/faces'
     trainingSet = []
 
     # Get the training images
     #trainset = [cv.imread(file) for file in glob.glob('faces/*.jpg')]
 
-    for image in os.listdir(trainingPath):
+    for image in trainingPath:
 
         trainingSet.append(image)
 
