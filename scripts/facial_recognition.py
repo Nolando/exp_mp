@@ -120,18 +120,16 @@ def neural_network():
 
 
     # Training data path
-    trainingPath = os.getcwd() + '/faces'
+    trainingPath = '/home/aidanstapleton/ur5espace/src/exp_mp/scripts/faces'
     trainingSet = []
-
+    print(trainingPath)
     # Get the training images
     #trainset = [cv.imread(file) for file in glob.glob('faces/*.jpg')]
 
+    # Append the training images (selfies) to the training set data list
     for image in trainingPath:
 
         trainingSet.append(image)
-
-    plt.imshow(trainingSet[0]) # SAYS OUT OF RANGE, CAN'T SEE THE IMAGES?
-    plt.show()
 
     # Assign the training dataset to faces file
     # trainset = torchvision.datasets.CIFAR10(root='faces', 
@@ -145,144 +143,144 @@ def neural_network():
 
     # Subscribe to the face box node to get the next testing data
     #testset = face_box_sub
-    # testset = image_list[0]
+    testingSet = trainingSet[0]
 
-    # ################################ Dataloaders ###########################################################
-    # trainloader = torch.utils.data.DataLoader(trainset, 
-    #                                         batch_size=8,
-    #                                         shuffle=True)
+    ################################ Dataloaders ###########################################################
+    trainloader = torch.utils.data.DataLoader(trainingSet, 
+                                            batch_size=8,
+                                            shuffle=True)
 
-    # testloader = torch.utils.data.DataLoader(testset,
-    #                                         batch_size=4,
-    #                                         shuffle=False)
+    testloader = torch.utils.data.DataLoader(testingSet,
+                                            batch_size=4,
+                                            shuffle=False)
 
-    # ################################ Understanding the dataset #############################################
-    # ################################ This section just prints info #########################################
-    # # classes = ('plane', 'car', 'bird', 'cat', 'deer', 
-    # #            'dog', 'frog', 'horse', 'ship', 'truck')
-    # classes = ('Aidan', 'Antony', 'Kieran', 'Noah')
+    ################################ Understanding the dataset #############################################
+    ################################ This section just prints info #########################################
+    # classes = ('plane', 'car', 'bird', 'cat', 'deer', 
+    #            'dog', 'frog', 'horse', 'ship', 'truck')
+    classes = ('Aidan', 'Antony', 'Kieran', 'Noah')
 
-    # # print number of samples                                                       
-    # print("Number of training samples is {}".format(len(trainset)))
-    # print("Number of test samples is {}".format(len(testset)))
+    # print number of samples                                                       
+    print("Number of training samples is {}".format(len(trainingSet)))
+    print("Number of test samples is {}".format(len(testingSet)))
 
-    # # iterate through the training set print useful information
-    # dataiter = iter(trainloader)
-    # images, labels = dataiter.next()    # this gather one batch of data
+    # iterate through the training set print useful information
+    dataiter = iter(trainloader)
+    images, labels = dataiter.next()    # this gather one batch of data
 
-    # print("Batch size is {}".format(len(images)))
-    # print("Size of each image is {}".format(images[0].shape))
+    print("Batch size is {}".format(len(images)))
+    print("Size of each image is {}".format(images[0].shape))
 
-    # print("The labels in this batch are: {}".format(labels))
-    # print("These correspond to the classes: {}, {}, {}, {}".format(
-    #     classes[labels[0]], classes[labels[1]],
-    #     classes[labels[2]], classes[labels[3]]))
+    print("The labels in this batch are: {}".format(labels))
+    print("These correspond to the classes: {}, {}, {}, {}".format(
+        classes[labels[0]], classes[labels[1]],
+        classes[labels[2]], classes[labels[3]]))
 
-    # # plot images of the batch
-    # fig, ax = plt.subplots(1, len(images))
-    # for id, image in enumerate(images):
-    #     # convert tensor back to numpy array for visualization
-    #     ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
-    #     ax[id].set_title(classes[labels[id]])
+    # plot images of the batch
+    fig, ax = plt.subplots(1, len(images))
+    for id, image in enumerate(images):
+        # convert tensor back to numpy array for visualization
+        ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
+        ax[id].set_title(classes[labels[id]])
 
-    # ################################ Define the neural network (NN) ########################################
-    # class Network(nn.Module):
+    ################################ Define the neural network (NN) ########################################
+    class Network(nn.Module):
 
-    #     def __init__(self):
+        def __init__(self):
 
-    #         # Define the NN layers
-    #         self.output_size = 10   # 10 classes
+            # Define the NN layers
+            self.output_size = 10   # 10 classes
 
-    #         super(Network, self).__init__()
-    #         self.conv1 = nn.Conv2d(3, 6, 5)             # 2D convolution
-    #         self.pool = nn.MaxPool2d(2, 2)              # max pooling
-    #         self.conv2 = nn.Conv2d(6, 16, 5)            # 2D convolution
-    #         self.fc1 = nn.Linear(16 * 5 * 5, 120)       # Fully connected layer
-    #         self.fc2 = nn.Linear(120, 84)               # Fully connected layer
-    #         self.fc3 = nn.Linear(84, self.output_size)  # Fully connected layer
+            super(Network, self).__init__()
+            self.conv1 = nn.Conv2d(3, 6, 5)             # 2D convolution
+            self.pool = nn.MaxPool2d(2, 2)              # max pooling
+            self.conv2 = nn.Conv2d(6, 16, 5)            # 2D convolution
+            self.fc1 = nn.Linear(16 * 5 * 5, 120)       # Fully connected layer
+            self.fc2 = nn.Linear(120, 84)               # Fully connected layer
+            self.fc3 = nn.Linear(84, self.output_size)  # Fully connected layer
 
-    #     def forward(self, x):
+        def forward(self, x):
             
-    #         # Define the forward pass
-    #         x = self.pool(functional.relu(self.conv1(x)))
-    #         x = self.pool(functional.relu(self.conv2(x)))
-    #         x = x.view(-1, 16 * 5 * 5)
-    #         x = functional.relu(self.fc1(x))
-    #         x = functional.relu(self.fc2(x))
-    #         x = self.fc3(x)
-    #         return x
+            # Define the forward pass
+            x = self.pool(functional.relu(self.conv1(x)))
+            x = self.pool(functional.relu(self.conv2(x)))
+            x = x.view(-1, 16 * 5 * 5)
+            x = functional.relu(self.fc1(x))
+            x = functional.relu(self.fc2(x))
+            x = self.fc3(x)
+            return x
             
-    # net = Network()
+    net = Network()
 
-    # ################################ Define the loss function and optimizer ################################
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    ################################ Define the loss function and optimizer ################################
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
-    # ################################ Train the neural network with the training data #######################
+    ################################ Train the neural network with the training data #######################
 
-    # # Number of epochs (cycles)
-    # epochCount = 5
+    # Number of epochs (cycles)
+    epochCount = 5
 
-    # # Loop through each epoch
-    # for epoch in range(epochCount):    # we are using 5 epochs. Typically 100-200
-    #     running_loss = 0.0
+    # Loop through each epoch
+    for epoch in range(epochCount):    # we are using 5 epochs. Typically 100-200
+        running_loss = 0.0
 
-    # for i, data in enumerate(trainloader, 0):
+    for i, data in enumerate(trainloader, 0):
 
-    #     # get the inputs
-    #     inputs, labels = data
+        # get the inputs
+        inputs, labels = data
 
-    #     # zero the parameter gradients
-    #     optimizer.zero_grad()
+        # zero the parameter gradients
+        optimizer.zero_grad()
 
-    #     # Perform forward pass and predict labels
-    #     predicted_labels = net(inputs)
+        # Perform forward pass and predict labels
+        predicted_labels = net(inputs)
 
-    #     # Calculate loss
-    #     loss = criterion(predicted_labels, labels)
+        # Calculate loss
+        loss = criterion(predicted_labels, labels)
         
-    #     # Perform back propagation and compute gradients
-    #     loss.backward()
+        # Perform back propagation and compute gradients
+        loss.backward()
         
-    #     # Take a step and update the parameters of the network
-    #     optimizer.step()
+        # Take a step and update the parameters of the network
+        optimizer.step()
 
-    #     # print statistics
-    #     running_loss += loss.item()
-    #     if i % 2000 == 1999:    # print every 2000 mini-batches
-    #         print('Epoch: %d, %5d loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
-    #         running_loss = 0.0
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print('Epoch: %d, %5d loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
+            running_loss = 0.0
 
-    # print('Finished Training.')
-    # torch.save(net.state_dict(), "data/cifar_trained.pth")
-    # print('Saved model parameters to disk.')
+    print('Finished Training.')
+    torch.save(net.state_dict(), "data/cifar_trained.pth")
+    print('Saved model parameters to disk.')
 
-    # ################################ Use the trained neural network to identify the target ##################
-    # dataiter = iter(testloader)
-    # images, labels = dataiter.next()
+    ################################ Use the trained neural network to identify the target ##################
+    dataiter = iter(testloader)
+    images, labels = dataiter.next()
 
-    # fig, ax = plt.subplots(1, len(images))
-    # for id, image in enumerate(images):
+    fig, ax = plt.subplots(1, len(images))
+    for id, image in enumerate(images):
 
-    #     # convert tensor back to numpy array for visualization
-    #     ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
-    #     ax[id].set_title(classes[labels[id]])
+        # convert tensor back to numpy array for visualization
+        ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
+        ax[id].set_title(classes[labels[id]])
 
-    # plt.show()
+    plt.show()
 
-    # # Predict the output using the trained neural network
-    # outputs = net(images)
+    # Predict the output using the trained neural network
+    outputs = net(images)
 
-    # # Normalize the outputs using the Softmax function so that
-    # # we can interpret it as a probability distribution.
-    # sm = nn.Softmax(dim=1)      
-    # sm_outputs = sm(outputs)
+    # Normalize the outputs using the Softmax function so that
+    # we can interpret it as a probability distribution.
+    sm = nn.Softmax(dim=1)      
+    sm_outputs = sm(outputs)
 
-    # # For each output the prediction with the highest probability
-    # # is the predicted label
-    # probs, index = torch.max(sm_outputs, dim=1)
-    # for p, i in zip(probs, index):
-    #     print('True label {0}, Predicted label {0} - {1:.4f}'.format(classes[i], p))
+    # For each output the prediction with the highest probability
+    # is the predicted label
+    probs, index = torch.max(sm_outputs, dim=1)
+    for p, i in zip(probs, index):
+        print('True label {0}, Predicted label {0} - {1:.4f}'.format(classes[i], p))
 
 if __name__ == '__main__':
     try:
