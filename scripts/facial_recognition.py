@@ -7,6 +7,7 @@
 import os
 import rospy
 import cv2 as cv
+import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
@@ -14,7 +15,8 @@ import torch.nn as nn
 import torch.nn.functional as functional
 import torch.optim as optim
 import torchvision
-import glob
+from torchvision.io import read_image
+from torch.utils.data import DataLoader
 from PIL import Image
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
@@ -121,7 +123,7 @@ def neural_network():
 
     # Training data path
     trainingPath = '/home/aidanstapleton/ur5espace/src/exp_mp/scripts/faces'
-    trainingSet = []
+    trainingImages = []
     print(trainingPath)
     # Get the training images
     #trainset = [cv.imread(file) for file in glob.glob('faces/*.jpg')]
@@ -129,7 +131,7 @@ def neural_network():
     # Append the training images (selfies) to the training set data list
     for image in trainingPath:
 
-        trainingSet.append(image)
+        trainingImages.append(image)
 
     # Assign the training dataset to faces file
     # trainset = torchvision.datasets.CIFAR10(root='faces', 
@@ -143,16 +145,35 @@ def neural_network():
 
     # Subscribe to the face box node to get the next testing data
     #testset = face_box_sub
-    testingSet = trainingSet[0]
+    testingImages = trainingImages[0]
+
+    # Create the custom training data set of selfies
+    class trainingImageDataset(trainingImages):
+
+        def __init__(self, features, labels, transform=None):
+            self.features = features
+            self.labels = labels
+            self.transform = transform
+
+        def __len__(self):
+            return len(self.features)
+
+        def __getitem__(self, idx):
+            img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+            image = read_image(img_path)
+            label = self.img_labels.iloc[idx, 1]
+            if self.transform:
+                image = self.transform(image)
+            if self.target_transform:
+                label = self.target_transform(label)
+            return image, label
 
     ################################ Dataloaders ###########################################################
-    trainloader = torch.utils.data.DataLoader(trainingSet, 
-                                            batch_size=8,
-                                            shuffle=True)
+    trainingDataset = trainingImageDataset(trainingImages, 'Aidan', custom_transform)
 
-    testloader = torch.utils.data.DataLoader(testingSet,
-                                            batch_size=4,
-                                            shuffle=False)
+
+    trainloader = DataLoader(trainingDataset, batch_size=8, shuffle=True)
+    testloader = DataLoader(testingSet, batch_size=4, shuffle=False)
 
     ################################ Understanding the dataset #############################################
     ################################ This section just prints info #########################################
@@ -160,28 +181,28 @@ def neural_network():
     #            'dog', 'frog', 'horse', 'ship', 'truck')
     classes = ('Aidan', 'Antony', 'Kieran', 'Noah')
 
-    # print number of samples                                                       
-    print("Number of training samples is {}".format(len(trainingSet)))
-    print("Number of test samples is {}".format(len(testingSet)))
+    # # print number of samples                                                       
+    # print("Number of training samples is {}".format(len(trainingSet)))
+    # print("Number of test samples is {}".format(len(testingSet)))
 
-    # iterate through the training set print useful information
-    dataiter = iter(trainloader)
-    images, labels = dataiter.next()    # this gather one batch of data
+    # # iterate through the training set print useful information
+    # dataiter = iter(trainloader)
+    # images, labels = dataiter.next()    # this gather one batch of data
 
-    print("Batch size is {}".format(len(images)))
-    print("Size of each image is {}".format(images[0].shape))
+    # print("Batch size is {}".format(len(images)))
+    # print("Size of each image is {}".format(images[0].shape))
 
-    print("The labels in this batch are: {}".format(labels))
-    print("These correspond to the classes: {}, {}, {}, {}".format(
-        classes[labels[0]], classes[labels[1]],
-        classes[labels[2]], classes[labels[3]]))
+    # print("The labels in this batch are: {}".format(labels))
+    # print("These correspond to the classes: {}, {}, {}, {}".format(
+    #     classes[labels[0]], classes[labels[1]],
+    #     classes[labels[2]], classes[labels[3]]))
 
-    # plot images of the batch
-    fig, ax = plt.subplots(1, len(images))
-    for id, image in enumerate(images):
-        # convert tensor back to numpy array for visualization
-        ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
-        ax[id].set_title(classes[labels[id]])
+    # # plot images of the batch
+    # fig, ax = plt.subplots(1, len(images))
+    # for id, image in enumerate(images):
+    #     # convert tensor back to numpy array for visualization
+    #     ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
+    #     ax[id].set_title(classes[labels[id]])
 
     ################################ Define the neural network (NN) ########################################
     class Network(nn.Module):
