@@ -74,28 +74,7 @@
       <!-- Main Content -->
       <div class="content">
         <div class="container-fluid">
-          <div class="row">
-
-            <!-- Card for the PizzaRobot connection status information  -->
-            <div class="col-xl-4 col-lg-12">
-              <div class="card card-chart">
-
-                <!-- Initally disconnected so is orange -->
-                <div id="camera-status" class="card-header card-header-warning">
-                  <h4 class="card-title">Django Connection</h4>
-                </div>
-                <div class="card-body" style="padding: 10px">
-                </div>
-
-                <!-- Message under the heading to indicate connection status, initially no connected -->
-                <div class="card-footer">
-                  <div id="camera-status-desc" class="stats" style="font-size:16px">
-                    <i class="material-icons">error</i> Not Connected
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          
 
           <div class="row">
 
@@ -143,6 +122,8 @@
                 <div class="card-body">
                   <div class="tab-content">
                     <div class="tab-pane active" id="right_tab">
+                    
+                      <!-- Mode of operation selection -->
                       <h5>Select mode of operation</h5>
                       <button onclick="manual_mode();"
                         class="btn btn-danger">Manual fire</button>
@@ -151,9 +132,8 @@
 
                       <hr>
 
-                      <h5>Press button to fire</h5>
-
                       <!-- Button click fires the gun by publishing boolean to topic -->
+                      <h5>Press button to fire</h5>
                       <button onclick="fire_gun();"
                         class="btn btn-danger">FIRE</button>
 
@@ -170,7 +150,7 @@
       <footer class="footer">
         <div class="container-fluid">
           <div class="copyright">
-            PizzaRobot by H.A.A.A.
+            Django, have you always been alone? Django, have you never loved again?
           </div>
         </div>
       </footer>
