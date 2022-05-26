@@ -235,13 +235,14 @@ def neural_network():
         def __init__(self):
 
             # Define the NN layers
-            self.output_size = 10   # 10 classes
+            self.output_size = 2   # 10 classes
 
             super(Network, self).__init__()
             self.conv1 = nn.Conv2d(3, 6, 5)             # 2D convolution
             self.pool = nn.MaxPool2d(2, 2)              # max pooling
             self.conv2 = nn.Conv2d(6, 16, 5)            # 2D convolution
-            self.fc1 = nn.Linear(16 * 5 * 5, 120)       # Fully connected layer
+            #self.fc1 = nn.Linear(16 * 5 * 5, 120)       # Fully connected layer
+            self.fc1 = nn.Linear(16 * 509 * 381, 120)       # Fully connected layer
             self.fc2 = nn.Linear(120, 84)               # Fully connected layer
             self.fc3 = nn.Linear(84, self.output_size)  # Fully connected layer
 
@@ -252,7 +253,7 @@ def neural_network():
             x = self.pool(functional.relu(self.conv2(x)))
             #x = x.view(-1, 16 * 5 * 5)
             print('Size of x: ', x.size(0))
-            x = x.view(8, 3 * 1017 * 1017)          # x.view(batch_size, channels, height, width)
+            x = x.view(-1, 16 * 509 * 381)          # x.view(batch_size, channels * height * width)
             x = functional.relu(self.fc1(x))
             x = functional.relu(self.fc2(x))
             x = self.fc3(x)
@@ -295,9 +296,9 @@ def neural_network():
 
         # print statistics
         running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('Epoch: %d, %5d loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
-            running_loss = 0.0
+        # if i % 2000 == 1999:    # print every 2000 mini-batches
+        print('Epoch: %d, %5d loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
+        running_loss = 0.0
 
     print('Finished Training.')
     torch.save(net.state_dict(), "data/cifar_trained.pth")
