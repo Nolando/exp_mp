@@ -9,11 +9,11 @@
 import rospy
 import cv2 as cv
 import numpy as np
-from std_msgs.msg import String
+from std_msgs.msg import Int64, Int64MultiArray
 from exp_mp.msg import bounding_box
 from sensor_msgs.msg import CompressedImage
-from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
 
 import camera_functions
 
@@ -75,6 +75,10 @@ class listener:
 
         # Variable initialisation
         self.converted_frame = np.empty((2,2))
+        self.face_boxes = np.empty((2,2))
+        self.enemy_boxes = np.empty((2,2))
+        self.homie_boxes = np.empty((2,2))
+        
 
         # ROS node initialisation
         rospy.init_node('listener', anonymous=True)
@@ -87,17 +91,18 @@ class listener:
         # self.homie_sub = rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), self.homies_sighted, queue_size=1)
         rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, self.django_eyes, queue_size=1)
         rospy.Subscriber("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), self.see_face, queue_size=1)
-        rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), self.enemy_sighted, queue_size=1)
-        rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), self.homies_sighted, queue_size=1)
+        # rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Int64), self.enemy_sighted, queue_size=1)
+        # rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Int64), self.homies_sighted, queue_size=1)
 
         # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():
             rospy.spin()
 
     #############################################################################
+    # Camera callback
     def django_eyes(self, frame):
 
-        # global converted_frame
+        # global converted_frame - WORKING
         self.converted_frame = camera_functions.camera_bridge_convert(frame)
 
         # log some info about the image topic
@@ -106,19 +111,32 @@ class listener:
     #############################################################################
     def see_face(self, b_box):
 
-        camera_functions.show_image("testing frame scope", self.converted_frame)
+        # Save bounding box in self scope
+        # self.face_boxes = b_box.data
 
         # log some info about the image topic
         rospy.loginfo("listener\tFACE")
 
+        print(b_box.data)
+        # print(self.face_boxes)
+        
+        # show boubding box on frame
+        # camera_functions.bounding_box_to_frame(self.face_boxes, self.converted_frame)
+
     #############################################################################
     def enemy_sighted(self, b_box):
+
+        # Save bounding box in self scope
+        self.enemy_boxes = b_box
 
         # log some info about the image topic
         rospy.loginfo("listener\tENEMY DETECTED")
 
     #############################################################################
     def homies_sighted(self, b_box):
+
+        # Save bounding box in self scope
+        self.homie_boxes = b_box
 
         # log some info about the image topic
         rospy.loginfo("listener\tHOMIE SIGHTED")

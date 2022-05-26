@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-# This script detects human faces and matches them with a trained
-# neural network to determine if they are a target. The coordinate
-# of the person's face is also calculated.
+# Machine Unlearning
 
 # Packages
 import os
+
 import rospy
 import cv2 as cv
-import pandas as pd
 import numpy as np
+from sensor_msgs.msg import CompressedImage
+import camera_functions
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
+
+
+from scipy.misc import face
+import pandas as pd
 import glob
 from matplotlib import pyplot as plt
 import torch
@@ -18,16 +24,13 @@ import torch.optim as optim
 import torchvision
 from torchvision.io import read_image
 from torch.utils.data import Dataset, DataLoader
-from PIL import Image
-from rospy.numpy_msg import numpy_msg
-from rospy_tutorials.msg import Floats
-from sensor_msgs.msg import CompressedImage
-import camera_functions
+
+
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
 # Create the publisher
-face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), queue_size=1)
+face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(Floats))
 
 # Initialise the face cascade classifier (done outside of function to try improve latency)
 # + LATENCY fixed by setting camera subscriber queue size to 1
@@ -35,305 +38,116 @@ cascadePath = 'haarcascade_frontalface_default.xml'
 faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
 
 #################################################################################
-def camera_callback(frame):
+class recognise_face:
 
-    # log some info about the image topic
-    # rospy.loginfo('facial_recognition\tCAMERA FRAME RECEIVED')
+    #############################################################################
+    def __init__(self):
 
-    # Convert the ROS image to OpenCV compatible image
-    converted_frame = camera_functions.camera_bridge_convert(frame)
+        # Initialise bounding box variable
+        self.box = np.array([1.1234,3.2312,86.3453,20.2099], dtype=np.float32)
+        
+        # ROS node initialisation
+        rospy.init_node('facial_recognition', anonymous=True)
+        rospy.loginfo('facial_recognition\tNODE INIT')
 
-    # Get the face bounding box
-    face_bounding_box = face_detect(converted_frame)      # np.ndarray if detected, tuple if empty
+    #############################################################################
+    def subscribe_to_cam(self):
 
-    # Test if the returned variable contains a detected face bounding box
-    if face_bounding_box is not tuple():
+        # Subscriber callbacks
+        rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, self.camera_callback, queue_size=1)
+        
+    #############################################################################
+    def publish_box(self):
 
-        # Log message
-        # rospy.loginfo('facial_recognition\tDETECTED FACE WITH BOX ' + np.array2string(face_bounding_box))
+        # Set the ros rate for publishing
+        rate = rospy.Rate(1)
 
-        # PUBLISH THE BOUNDING BOX
-        face_box_pub.publish(face_bounding_box)
+        # # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
+        while not rospy.is_shutdown():
+
+            # Check that there was a face detected (tuple returned if no)
+            if self.box is not tuple():
+                
+                # Publish the bounding box
+                face_box_pub.publish(self.box)
+
+            # Sleep for the rest of the ROS rate
+            rate.sleep()
+
+    #############################################################################
+    def camera_callback(self, frame):
+
+        # log some info about the image topic
+        # rospy.loginfo('facial_recognition\tCAMERA FRAME RECEIVED')
+
+        # Convert the ROS image to OpenCV compatible image
+        converted_frame = camera_functions.camera_bridge_convert(frame)
+
+        # Get the face bounding box
+        self.box = recognise_face.face_detect(self, converted_frame)      # np.ndarray if detected, tuple if empty
 
         # Test for checking box is correct
-        # for (x, y, w, h) in face_bounding_box:
+        # for (x, y, w, h) in self.box:
         #     cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
         # camera_functions.show_image("face_detection node", converted_frame)
 
+    #################################################################################
+    # Uses the Haar feature based cascade classifiers in OpenCV to detect faces
+    def face_detect(self, img):
+
+        # Get the current image frame and make a greyscale copy
+        img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+        # Adjust the resolution percentage decrease - FOR FASTER DETECTION
+        # 100% resolution range is around 5m
+        # 70% resolution range is around 2.5-3m
+        percentage_decrease = 80
+
+        # Get the width and height dimensions
+        width = int(img_gray.shape[1] * percentage_decrease / 100)
+        height = int(img_gray.shape[0] * percentage_decrease / 100)
+        dim = (width, height)
+
+        # Resize the image to smaller resolution
+        img_gray = cv.resize(img_gray, dim, interpolation=cv.INTER_AREA)
+
+        # Detect faces in the image as a bounding box
+        faces = faceCascade.detectMultiScale(
+            img_gray,
+            scaleFactor=1.12,           # Attempting to tune this was originally 1.1
+            minNeighbors=5,             # Can adjust to fix latency also, originally was 5
+            minSize=(30, 30),
+            flags = cv.CASCADE_SCALE_IMAGE
+        )
+
+        # Test if face was detected in the frame
+        if faces is not tuple():
+
+            # Convert box coordiantes back to original frame resolution
+            faces = faces * (100 / percentage_decrease)                 # np array float64
+            faces = np.array(faces, dtype=np.float32)                   # np array float32
+
+            # Convert to 1D array from 2D **KEY
+            faces = faces.flatten()
+
+        # Return the face bounding box
+        return faces
+
 #################################################################################
-# Uses the Haar feature based cascade classifiers in OpenCV to detect faces
-def face_detect(img):
+def main():
 
-    # Get the current image frame and make a greyscale copy
-    img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    # Create the class instance
+    facial = recognise_face()
 
-    # Adjust the resolution percentage decrease - FOR FASTER DETECTION
-    percentage_decrease = 50
+    # Subscribe to the camera topic and find faces
+    facial.subscribe_to_cam()
 
-    # Get the width and height dimensions
-    width = int(img_gray.shape[1] * percentage_decrease / 100)
-    height = int(img_gray.shape[0] * percentage_decrease / 100)
-    dim = (width, height)
+    # Publish the face bounding boxes
+    facial.publish_box()
 
-    # Resize the image to smaller resolution
-    img_gray = cv.resize(img_gray, dim, interpolation=cv.INTER_AREA)
-
-    # Detect faces in the image as a bounding box
-    faces = faceCascade.detectMultiScale(
-        img_gray,
-        scaleFactor=1.12,           # Attempting to tune this was originally 1.1
-        minNeighbors=5,             # Can adjust to fix latency also, originally was 5
-        minSize=(30, 30),
-        flags = cv.CASCADE_SCALE_IMAGE
-    )
-
-    # Test if face was detected in the frame
-    if faces is not tuple():
-
-        # Convert box coordiantes back to original frame resolution
-        faces = faces * (100 / percentage_decrease)
-        faces = np.array(faces, int)
-
-    # Return the face bounding box
-    return faces
-
-#################################################################################
-def recognise_face():
-
-    # Initilaise the node and display message 
-    rospy.init_node('facial_recognition', anonymous=True)
-    rospy.loginfo('facial_recognition\tNODE INIT')
-    neural_network()
-    # Set the ROS spin rate: 1Hz ~ 1 second
-    rate = rospy.Rate(1)        ############ Can make this an argument in launch and streamline rates##############
-
-    # Subscriber callbacks
-    rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback, queue_size=1)
-
-    # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
-    while not rospy.is_shutdown():
-        rospy.spin()
-
-################################################################################
-def neural_network():
-
-    ################################ Define some custom transforms to apply to the image ####################
-    custom_transform = torchvision.transforms.Compose(
-        [torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    # Training data path
-    trainingPath = '/home/aidanstapleton/ur5espace/src/exp_mp/scripts/faces/'
-
-    # Add the training images (selfies) to the training set data list
-    imageDirectories = []
-    [imageDirectories.extend(glob.glob(trainingPath + '*.jpg'))]
-    trainingImages = [cv.imread(currentImage) for currentImage in imageDirectories]
-
-    # Get the image file names
-    imageNames = []
-    for imageName in os.listdir(trainingPath):
-        
-        imageNames.append(imageName)
-
-
-    ####### Make a list of labels for each person of interest in the data set plus a category for 'other' ########
-    # List of image labels (must correspond to the order of the images)
-    labels = ['Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran']
-
-    # Assign the training dataset to faces file
-    # trainset = torchvision.datasets.CIFAR10(root='faces', 
-    #                                         train=True,     # True for training set
-    #                                         download=True, 
-    #                                         transform=custom_transform)
-    # testset = torchvision.datasets.CIFAR10(root='data', 
-    #                                        train=False,    # False for test set
-    #                                        download=True, 
-    #                                        transform=custom_transform)
-
-    # Subscribe to the face box node to get the next testing data
-    #testset = face_box_sub
-    testingImages = trainingImages[0]
-
-    # Create the custom training data set of selfies
-    class trainingImageDataset(Dataset):
-
-        # Initialise the dataset object
-        def __init__(self, imagesDirectory, imageNames, labels, transform=None):
-            self.imagesDirectory = imagesDirectory
-            self.labels = pd.DataFrame(labels)  # Convert list to a dataframe to use 'iloc'
-            self.imageNames = pd.DataFrame(imageNames)
-            self.transform = transform
-
-        # Get the length of the dataset
-        def __len__(self):
-            return len(self.labels)
-
-        # Get a sample from the dataset
-        def __getitem__(self, idx):
-
-            #img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-            #image = read_image(img_path)
-            #label = self.img_labels.iloc[idx, 1]
-
-            # Get the current image and label
-            #image = trainingImages[idx]
-            #label = labels[idx]
-
-            # Apply transforms
-            #if self.transform:
-                #image = self.transform(image)
-            #if self.target_transform:
-            #    label = self.target_transform(label)
-            #return image, label
-
-            img_path = os.path.join(self.imagesDirectory, self.imageNames.iloc[idx, 0])
-            print(img_path)
-            image = read_image(img_path)
-            label = self.labels.iloc[idx, 0]
-            if self.transform:
-                image = self.transform(image)
-            if self.target_transform:
-                label = self.target_transform(label)
-            return image, label
-
-    ################################ Dataloaders ###########################################################
-    trainingDataset = trainingImageDataset(trainingPath, imageNames, labels, custom_transform)
-
-
-    trainloader = DataLoader(trainingDataset, batch_size=8, shuffle=True)
-    testloader = DataLoader(testingImages, batch_size=4, shuffle=False)
-
-    ################################ Understanding the dataset #############################################
-    ################################ This section just prints info #########################################
-    # classes = ('plane', 'car', 'bird', 'cat', 'deer', 
-    #            'dog', 'frog', 'horse', 'ship', 'truck')
-    classes = ('Aidan', 'Antony', 'Kieran', 'Noah')
-
-    # # print number of samples                                                       
-    # print("Number of training samples is {}".format(len(trainingSet)))
-    # print("Number of test samples is {}".format(len(testingSet)))
-
-    # # iterate through the training set print useful information
-    # dataiter = iter(trainloader)
-    # images, labels = dataiter.next()    # this gather one batch of data
-
-    # print("Batch size is {}".format(len(images)))
-    # print("Size of each image is {}".format(images[0].shape))
-
-    # print("The labels in this batch are: {}".format(labels))
-    # print("These correspond to the classes: {}, {}, {}, {}".format(
-    #     classes[labels[0]], classes[labels[1]],
-    #     classes[labels[2]], classes[labels[3]]))
-
-    # # plot images of the batch
-    # fig, ax = plt.subplots(1, len(images))
-    # for id, image in enumerate(images):
-    #     # convert tensor back to numpy array for visualization
-    #     ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
-    #     ax[id].set_title(classes[labels[id]])
-
-    ################################ Define the neural network (NN) ########################################
-    class Network(nn.Module):
-
-        def __init__(self):
-
-            # Define the NN layers
-            self.output_size = 10   # 10 classes
-
-            super(Network, self).__init__()
-            self.conv1 = nn.Conv2d(3, 6, 5)             # 2D convolution
-            self.pool = nn.MaxPool2d(2, 2)              # max pooling
-            self.conv2 = nn.Conv2d(6, 16, 5)            # 2D convolution
-            self.fc1 = nn.Linear(16 * 5 * 5, 120)       # Fully connected layer
-            self.fc2 = nn.Linear(120, 84)               # Fully connected layer
-            self.fc3 = nn.Linear(84, self.output_size)  # Fully connected layer
-
-        def forward(self, x):
-            
-            # Define the forward pass
-            x = self.pool(functional.relu(self.conv1(x)))
-            x = self.pool(functional.relu(self.conv2(x)))
-            x = x.view(-1, 16 * 5 * 5)
-            x = functional.relu(self.fc1(x))
-            x = functional.relu(self.fc2(x))
-            x = self.fc3(x)
-            return x
-            
-    net = Network()
-
-    ################################ Define the loss function and optimizer ################################
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-    ################################ Train the neural network with the training data #######################
-
-    # Number of epochs (cycles)
-    epochCount = 5
-
-    # Loop through each epoch
-    for epoch in range(epochCount):    # we are using 5 epochs. Typically 100-200
-        running_loss = 0.0
-
-    for i, data in enumerate(trainloader, 0):
-
-        # get the inputs
-        inputs, labels = data
-
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-        # Perform forward pass and predict labels
-        predicted_labels = net(inputs)
-
-        # Calculate loss
-        loss = criterion(predicted_labels, labels)
-        
-        # Perform back propagation and compute gradients
-        loss.backward()
-        
-        # Take a step and update the parameters of the network
-        optimizer.step()
-
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('Epoch: %d, %5d loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
-            running_loss = 0.0
-
-    print('Finished Training.')
-    torch.save(net.state_dict(), "data/cifar_trained.pth")
-    print('Saved model parameters to disk.')
-
-    ################################ Use the trained neural network to identify the target ##################
-    dataiter = iter(testloader)
-    images, labels = dataiter.next()
-
-    fig, ax = plt.subplots(1, len(images))
-    for id, image in enumerate(images):
-
-        # convert tensor back to numpy array for visualization
-        ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
-        ax[id].set_title(classes[labels[id]])
-
-    plt.show()
-
-    # Predict the output using the trained neural network
-    outputs = net(images)
-
-    # Normalize the outputs using the Softmax function so that
-    # we can interpret it as a probability distribution.
-    sm = nn.Softmax(dim=1)      
-    sm_outputs = sm(outputs)
-
-    # For each output the prediction with the highest probability
-    # is the predicted label
-    probs, index = torch.max(sm_outputs, dim=1)
-    for p, i in zip(probs, index):
-        print('True label {0}, Predicted label {0} - {1:.4f}'.format(classes[i], p))
 
 if __name__ == '__main__':
     try:
-        recognise_face()
+        main()
     except rospy.ROSInterruptException:
         pass
