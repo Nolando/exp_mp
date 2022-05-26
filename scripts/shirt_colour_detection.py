@@ -45,8 +45,6 @@ def camera_callback(frame):
     # Colour segment to get the bounding box for shirts for red and green
     shirt_bounding_box_R = colour_segmentation(mask_R)          # np.ndarray
     shirt_bounding_box_G = colour_segmentation(mask_G)
-
-    print(shirt_bounding_box_R)
     
     # Convert to 1D array from 2D
     shirt_bounding_box_R = shirt_bounding_box_R.flatten()

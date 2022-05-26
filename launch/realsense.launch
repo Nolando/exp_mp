@@ -21,18 +21,18 @@
             output="screen"/>
 
     <!-- Facial recognition node reads from the realsense camera and detects face bounding boxes -->
-    <node   name="facial_recognition" 
+    <!-- <node   name="facial_recognition" 
             pkg="exp_mp" 
             type="facial_recognition.py" 
             respawn="true"
-            output="screen"/>
+            output="screen"/> -->
 
     <!-- Shirt colour detection node reads from the realsense camera and detects shirt bounding boxes -->
-    <!-- <node   name="shirt_detection" 
+    <node   name="shirt_detection" 
             pkg="exp_mp" 
             type="shirt_colour_detection.py" 
             respawn="true"
-            output="screen"/> -->
+            output="screen"/>
     
 
 </launch>

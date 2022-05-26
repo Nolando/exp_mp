@@ -103,44 +103,52 @@ class listener:
         # global converted_frame - WORKING
         self.converted_frame = camera_functions.camera_bridge_convert(frame)
 
-        # log some info about the image topic
-        # rospy.loginfo("listener\tEYES ON")
+        # Log some info about the image topic
+        rospy.loginfo("listener\tEYES ON")
 
     #############################################################################
     # Face bounding box subscriber at a rate of 50Hz = 20ms
     def see_face(self, b_box):
 
-        # Save bounding box as a converted 2D numpy array for iteration
-        self.face_boxes = np.array([b_box.data], int)
-
         # Log some info about the image topic
         rospy.loginfo("listener\tFACE")
+
+        # Save bounding box data into a CV2 suitable format - CHANGE TO THIS IN SUBMITTED CODE
+        # self.face_boxes = listener.convert_box_format(self, b_box)
+
+        # Save bounding box as a converted 2D numpy array for iteration
+        self.face_boxes = np.array([b_box.data], int)
         
         # Test if multiple faces detected
         if self.face_boxes.size > 4:
 
             # Reshape into 2D
             self.face_boxes = np.reshape(self.face_boxes, (-1, 4))
-            print(self.face_boxes)
 
-            # frame = camera_functions.bounding_box_to_frame(self.face_boxes, self.converted_frame)
-
-        # Show boubding box on frame
-        frame = camera_functions.bounding_box_to_frame(self.face_boxes, self.converted_frame)
-        camera_functions.show_image("Test", frame)
+        # Show bounding box on frame
+        # frame = camera_functions.bounding_box_to_frame(self.face_boxes, self.converted_frame)
+        # camera_functions.show_image("Testing facial bounding box", frame)
 
     #############################################################################
     def enemy_sighted(self, b_box):
 
-        # Save bounding box as a converted 2D array for iteration
-        print(b_box)
-        self.enemy_boxes = np.reshape(b_box, (-1, 4))
-        print(self.enemy_boxes)
-
-        # log some info about the image topic
+        # Log some info about the image topic
         rospy.loginfo("listener\tENEMY DETECTED")
 
-        # camera_functions.bounding_box_to_frame(self.enemy_boxes, self.converted_frame)
+        # Save bounding box data into a CV2 suitable format - CHANGE TO THIS IN SUBMITTED CODE
+        # self.enemy_boxes = listener.convert_box_format(self, b_box)
+
+        # Save bounding box as a converted 2D numpy array for iteration
+        self.enemy_boxes = np.array([b_box.data], int)
+        
+        # Test if multiple faces detected
+        if self.enemy_boxes.size > 4:
+
+            # Reshape into 2D
+            self.enemy_boxes = np.reshape(self.enemy_boxes, (-1, 4))
+
+        frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, self.converted_frame)
+        camera_functions.show_image("Testing RED SHIRT ENEMY bounding box", frame)
 
     #############################################################################
     def homies_sighted(self, b_box):
@@ -150,6 +158,22 @@ class listener:
 
         # log some info about the image topic
         rospy.loginfo("listener\tHOMIE SIGHTED")
+
+    #############################################################################
+    def convert_box_format(self, subscribed_box):
+
+        # Converts the ROS subscribed to numpy float to compatible with CV
+        formated_box = np.array([subscribed_box.data], int)
+
+        # Test if multiple boxes detected
+        if formated_box.size > 4:
+
+            # Reshape into 2D
+            formated_box = np.reshape(formated_box, (-1, 4))
+            # print(formated_box)
+        
+        # Return the formatted box
+        return formated_box
 
 #################################################################################
 def main():
