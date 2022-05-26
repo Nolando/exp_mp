@@ -36,3 +36,14 @@ def show_image(window_name, frame):
     # Display the image frame
     cv.imshow(window_name, frame)
     cv.waitKey(3)
+
+#################################################################################
+# Function to add rectangle bounding box to image frame
+def bounding_box_to_frame(bounding_box, frame):
+
+    # Loop through the bounding box data points
+    for (x, y, w, h) in bounding_box:
+
+        # Add the box to the frame as a rectangle
+        cv.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    return frame

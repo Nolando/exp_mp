@@ -11,17 +11,19 @@ import cv2 as cv
 import numpy as np
 from std_msgs.msg import String
 from exp_mp.msg import bounding_box
-from sensor_msgs.msg import CompressedImage, Image
+from sensor_msgs.msg import CompressedImage
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
+
+import camera_functions
 
 
 #################################################################################
 # CHANGE TO LOGIC OF HAVING BOTH BOUNDING BOXES AND GETTING WHOLE BOX (TORSO)
-def camera_callback(frame):
+# def django_eyes(frame):
 
-    # log some info about the image topic
-    rospy.loginfo("CAMERA FRAME RECEIVED")
+#     # log some info about the image topic
+#     rospy.loginfo("listener\tEYES ON")
 
     # CHANGE TO LOGIC OF BOTH BOXES....
     
@@ -59,41 +61,76 @@ def camera_callback(frame):
     # # Show the detected features with bounding boxes
     # show_image("Converted Image", cv_frame)
 
-#################################################################################
-def see_face(box):
-    rospy.loginfo("listener\tFACE RECOGNISED")
+# Global variables
+# global converted_frame
+
 
 #################################################################################
-def enemy_sighted(box):
-    rospy.loginfo("listener\tENEMY DETECTED")
+# Class definition
+class listener:
+
+    #############################################################################
+    # Initialisation constructor function creates the subscribers
+    def __init__(self):
+
+        # Variable initialisation
+        self.converted_frame = np.empty((2,2))
+
+        # ROS node initialisation
+        rospy.init_node('listener', anonymous=True)
+        rospy.loginfo('listener\tNODE INIT')
+
+        # ROS subscriber callbacks
+        # self.eyes_sub = rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, self.django_eyes, queue_size=1)
+        # self.face_sub = rospy.Subscriber("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), self.see_face, queue_size=1)
+        # self.enemy_sub = rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), self.enemy_sighted, queue_size=1)
+        # self.homie_sub = rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), self.homies_sighted, queue_size=1)
+        rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, self.django_eyes, queue_size=1)
+        rospy.Subscriber("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), self.see_face, queue_size=1)
+        rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), self.enemy_sighted, queue_size=1)
+        rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), self.homies_sighted, queue_size=1)
+
+        # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
+        while not rospy.is_shutdown():
+            rospy.spin()
+
+    #############################################################################
+    def django_eyes(self, frame):
+
+        # global converted_frame
+        self.converted_frame = camera_functions.camera_bridge_convert(frame)
+
+        # log some info about the image topic
+        rospy.loginfo("listener\tEYES ON")
+
+    #############################################################################
+    def see_face(self, b_box):
+
+        camera_functions.show_image("testing frame scope", self.converted_frame)
+
+        # log some info about the image topic
+        rospy.loginfo("listener\tFACE")
+
+    #############################################################################
+    def enemy_sighted(self, b_box):
+
+        # log some info about the image topic
+        rospy.loginfo("listener\tENEMY DETECTED")
+
+    #############################################################################
+    def homies_sighted(self, b_box):
+
+        # log some info about the image topic
+        rospy.loginfo("listener\tHOMIE SIGHTED")
 
 #################################################################################
-def homies_sighted(box):
-    rospy.loginfo("listener\tHOMIE SIGHTED")
+def main():
 
-#################################################################################
-# /camera/color/image_raw/compressed
-
-def listener():
-
-    # Initilaise the node
-    rospy.init_node('listener', anonymous=True)
-    rospy.loginfo('listener\tNODE INIT')
-
-    # Set the ROS spin rate: 1Hz ~ 1 second
-    rate = rospy.Rate(1)        ############ Can make this an argument in launch and streamline rates##############
-
-    # Subscriber callbacks
-    rospy.Subscriber("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), see_face, queue_size=1)
-    # rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), enemy_sighted, queue_size=1)
-    # rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), homies_sighted, queue_size=1)
-
-    # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
-    while not rospy.is_shutdown():
-        rospy.spin()
+    # Initialise the listener class and functions
+    listener()
 
 if __name__ == '__main__':
     try:
-        listener()
+        main()
     except rospy.ROSInterruptException:
         pass

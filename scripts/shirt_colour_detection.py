@@ -18,11 +18,12 @@ shirt_box_pub_G = rospy.Publisher("/django/eagle_eye/bounding_box_homies", numpy
 # Set the limits for the colours (in HSV)
 red_low_limit_lower = np.array([0, 100, 90])           # Red
 red_high_limit_lower = np.array([5, 255, 255])
-red_low_limit_upper = np.array([150, 100, 90])           # Red
+# red_low_limit_upper = np.array([169, 88, 90])           # Red
+red_low_limit_upper = np.array([160, 88, 90])           # Red
 red_high_limit_upper = np.array([180, 255, 255])
 
-green_low_limit = np.array([140, 30, 0])          # Green
-green_high_limit = np.array([179, 255, 255])
+green_low_limit = np.array([58, 35, 0])          # Green
+green_high_limit = np.array([86, 255, 255])
 
 #################################################################################
 def camera_callback(frame):
@@ -53,20 +54,20 @@ def camera_callback(frame):
         # PUBLISH THE BOUNDING BOX
         shirt_box_pub_R.publish(shirt_bounding_box_R)
 
-        # # Test for checking box is correct
+        # Test for checking box is correct
         # for (x, y, w, h) in shirt_bounding_box_R:
         #     cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
-        # camera_functions.show_image("shirt_detection node", converted_frame)
+        # camera_functions.show_image("shirt_detection node RED", converted_frame)
 
     # Disabling for now until green shirt bought - NEED TO FIX THRESHOLDS
-    # if shirt_bounding_box_G.size is not 0:
-    #     rospy.loginfo('shirt_detection\tDETECTED GREEN SHIRT HOMIES ' + np.array2string(shirt_bounding_box_G))
-    #     shirt_box_pub_G.publish(shirt_bounding_box_G)
+    if shirt_bounding_box_G.size is not 0:
+        # rospy.loginfo('shirt_detection\tDETECTED GREEN SHIRT HOMIES ' + np.array2string(shirt_bounding_box_G))
+        shirt_box_pub_G.publish(shirt_bounding_box_G)
 
-    #     # Test for checking box is correct
-    #     for (x, y, w, h) in shirt_bounding_box_G:
-    #         cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    #     camera_functions.show_image("shirt_detection node", converted_frame)
+        # Test for checking box is correct
+        # for (x, y, w, h) in shirt_bounding_box_G:
+        #     cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        # camera_functions.show_image("shirt_detection node", converted_frame)
 
 #################################################################################
 # The red colour masks
@@ -74,7 +75,7 @@ def red_mask(frame):
 
     # Threshold the image for red (HSV colour space)
     mask_lower = cv.inRange(frame, red_low_limit_lower, red_high_limit_lower)
-    mask_upper = cv.inRange(frame, red_low_limit_upper, red_low_limit_upper)
+    mask_upper = cv.inRange(frame, red_low_limit_upper, red_high_limit_upper)
 
     # Combine the masks and return to caller
     mask = cv.bitwise_or(mask_lower, mask_upper)
@@ -85,6 +86,7 @@ def green_mask(frame):
 
     # Threshold the image with preset low and high HSV limits
     mask = cv.inRange(frame, green_low_limit, green_high_limit)
+    # camera_functions.show_image("Mask", mask)
     return mask
 
 #################################################################################
@@ -95,11 +97,11 @@ def colour_segmentation(mask):
     shirt_box = []
 
     # Morphological close to help detections with large kernel size - filters out noise
-    kernel = np.ones((30, 30), np.uint8)
+    kernel = np.ones((25, 25), np.uint8)
     frame_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    # show_image("Segmented", frame_bw)
+    # camera_functions.show_image("Morph Op", frame_bw)
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(frame_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -135,7 +137,7 @@ def detect_shirt_colour():
     rospy.loginfo('shirt_detection\tNODE INIT')
 
     # Set the ROS spin rate: 1Hz ~ 1 second
-    rate = rospy.Rate(1)        ############ Can make this an argument in launch and streamline rates##############
+    # rate = rospy.Rate(1)        ############ Can make this an argument in launch and streamline rates##############
 
     # Subscriber callbacks
     rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback, queue_size=1)
