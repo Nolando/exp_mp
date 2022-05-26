@@ -9,6 +9,7 @@ import rospy
 import cv2 as cv
 import pandas as pd
 import numpy as np
+import glob
 from matplotlib import pyplot as plt
 import torch
 import torch.nn as nn
@@ -16,12 +17,14 @@ import torch.nn.functional as functional
 import torch.optim as optim
 import torchvision
 from torchvision.io import read_image
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
 from sensor_msgs.msg import CompressedImage
 import camera_functions
+from torchvision import datasets
+from torchvision.transforms import ToTensor
 
 # Create the publisher
 face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), queue_size=1)
@@ -119,19 +122,24 @@ def neural_network():
         [torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-
-
     # Training data path
-    trainingPath = '/home/aidanstapleton/ur5espace/src/exp_mp/scripts/faces'
-    trainingImages = []
-    print(trainingPath)
-    # Get the training images
-    #trainset = [cv.imread(file) for file in glob.glob('faces/*.jpg')]
+    trainingPath = '/home/aidanstapleton/ur5espace/src/exp_mp/scripts/faces/'
 
-    # Append the training images (selfies) to the training set data list
-    for image in trainingPath:
+    # Add the training images (selfies) to the training set data list
+    imageDirectories = []
+    [imageDirectories.extend(glob.glob(trainingPath + '*.jpg'))]
+    trainingImages = [cv.imread(currentImage) for currentImage in imageDirectories]
 
-        trainingImages.append(image)
+    # Get the image file names
+    imageNames = []
+    for imageName in os.listdir(trainingPath):
+        
+        imageNames.append(imageName)
+
+
+    ####### Make a list of labels for each person of interest in the data set plus a category for 'other' ########
+    # List of image labels (must correspond to the order of the images)
+    labels = ['Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran']
 
     # Assign the training dataset to faces file
     # trainset = torchvision.datasets.CIFAR10(root='faces', 
@@ -148,20 +156,41 @@ def neural_network():
     testingImages = trainingImages[0]
 
     # Create the custom training data set of selfies
-    class trainingImageDataset(trainingImages):
+    class trainingImageDataset(Dataset):
 
-        def __init__(self, features, labels, transform=None):
-            self.features = features
-            self.labels = labels
+        # Initialise the dataset object
+        def __init__(self, imagesDirectory, imageNames, labels, transform=None):
+            self.imagesDirectory = imagesDirectory
+            self.labels = pd.DataFrame(labels)  # Convert list to a dataframe to use 'iloc'
+            self.imageNames = pd.DataFrame(imageNames)
             self.transform = transform
 
+        # Get the length of the dataset
         def __len__(self):
-            return len(self.features)
+            return len(self.labels)
 
+        # Get a sample from the dataset
         def __getitem__(self, idx):
-            img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+
+            #img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+            #image = read_image(img_path)
+            #label = self.img_labels.iloc[idx, 1]
+
+            # Get the current image and label
+            #image = trainingImages[idx]
+            #label = labels[idx]
+
+            # Apply transforms
+            #if self.transform:
+                #image = self.transform(image)
+            #if self.target_transform:
+            #    label = self.target_transform(label)
+            #return image, label
+
+            img_path = os.path.join(self.imagesDirectory, self.imageNames.iloc[idx, 0])
+            print(img_path)
             image = read_image(img_path)
-            label = self.img_labels.iloc[idx, 1]
+            label = self.labels.iloc[idx, 0]
             if self.transform:
                 image = self.transform(image)
             if self.target_transform:
@@ -169,11 +198,11 @@ def neural_network():
             return image, label
 
     ################################ Dataloaders ###########################################################
-    trainingDataset = trainingImageDataset(trainingImages, 'Aidan', custom_transform)
+    trainingDataset = trainingImageDataset(trainingPath, imageNames, labels, custom_transform)
 
 
     trainloader = DataLoader(trainingDataset, batch_size=8, shuffle=True)
-    testloader = DataLoader(testingSet, batch_size=4, shuffle=False)
+    testloader = DataLoader(testingImages, batch_size=4, shuffle=False)
 
     ################################ Understanding the dataset #############################################
     ################################ This section just prints info #########################################
