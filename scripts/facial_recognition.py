@@ -18,6 +18,7 @@ import torch.optim as optim
 import torchvision
 from torchvision.io import read_image
 from torch.utils.data import Dataset, DataLoader
+import PIL
 from PIL import Image
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
@@ -139,8 +140,8 @@ def neural_network():
 
     ####### Make a list of labels for each person of interest in the data set plus a category for 'other' ########
     # List of image labels (must correspond to the order of the images)
-    labels = ['Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran']
-
+    nameLabels = ['Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran']
+    labels = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,]
     # Assign the training dataset to faces file
     # trainset = torchvision.datasets.CIFAR10(root='faces', 
     #                                         train=True,     # True for training set
@@ -159,11 +160,12 @@ def neural_network():
     class trainingImageDataset(Dataset):
 
         # Initialise the dataset object
-        def __init__(self, imagesDirectory, imageNames, labels, transform=None):
+        def __init__(self, imagesDirectory, imageNames, labels, transform=None, target_transform=None):
             self.imagesDirectory = imagesDirectory
             self.labels = pd.DataFrame(labels)  # Convert list to a dataframe to use 'iloc'
             self.imageNames = pd.DataFrame(imageNames)
             self.transform = transform
+            self.target_transform = target_transform
 
         # Get the length of the dataset
         def __len__(self):
@@ -172,33 +174,27 @@ def neural_network():
         # Get a sample from the dataset
         def __getitem__(self, idx):
 
-            #img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-            #image = read_image(img_path)
-            #label = self.img_labels.iloc[idx, 1]
-
-            # Get the current image and label
-            #image = trainingImages[idx]
-            #label = labels[idx]
-
-            # Apply transforms
-            #if self.transform:
-                #image = self.transform(image)
-            #if self.target_transform:
-            #    label = self.target_transform(label)
-            #return image, label
-
+            # Get the image path of the current image in the training dataset
             img_path = os.path.join(self.imagesDirectory, self.imageNames.iloc[idx, 0])
-            print(img_path)
-            image = read_image(img_path)
+            
+            # Current image as an NP array
+            #imageTensor = read_image(img_path)                  # Type = Tensor
+            PIL_Image = PIL.Image.open(img_path)
+            imageNpArray = np.array(PIL_Image)                  # Type = NP array
+
+            # Label for the current image
             label = self.labels.iloc[idx, 0]
-            if self.transform:
-                image = self.transform(image)
-            if self.target_transform:
+            #label = np.array(label)
+            
+            # Transform the current image and label into the correct formats
+            if self.transform:                                  # Features need to be normalized tensors
+                image = self.transform(imageNpArray)
+            if self.target_transform:                           # Labels need to be one-hot encoded tensors
                 label = self.target_transform(label)
             return image, label
 
     ################################ Dataloaders ###########################################################
-    trainingDataset = trainingImageDataset(trainingPath, imageNames, labels, custom_transform)
+    trainingDataset = trainingImageDataset(trainingPath, imageNames, labels, transform = custom_transform)
 
 
     trainloader = DataLoader(trainingDataset, batch_size=8, shuffle=True)
@@ -254,7 +250,9 @@ def neural_network():
             # Define the forward pass
             x = self.pool(functional.relu(self.conv1(x)))
             x = self.pool(functional.relu(self.conv2(x)))
-            x = x.view(-1, 16 * 5 * 5)
+            #x = x.view(-1, 16 * 5 * 5)
+            print('Size of x: ', x.size(0))
+            x = x.view(8, 3 * 1017 * 1017)          # x.view(batch_size, channels, height, width)
             x = functional.relu(self.fc1(x))
             x = functional.relu(self.fc2(x))
             x = self.fc3(x)
