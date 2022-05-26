@@ -43,7 +43,7 @@ def camera_callback(frame):
     mask_G = green_mask(hsv_frame)
 
     # Colour segment to get the bounding box for shirts for red and green
-    shirt_bounding_box_R = colour_segmentation(mask_R)          # np.ndarray
+    shirt_bounding_box_R = colour_segmentation(mask_R)          # np.ndarray float32
     shirt_bounding_box_G = colour_segmentation(mask_G)
     
     # Convert to 1D array from 2D
@@ -128,8 +128,8 @@ def colour_segmentation(mask):
             # Append to the list of detected shirt boxes
             shirt_box.append(current_box)
             
-    # Return the bounding box as a numpy array
-    shirt_box = np.array(shirt_box)
+    # Return the bounding box as a numpy array of float32 for publishing
+    shirt_box = np.array(shirt_box, dtype=np.float32)
     return shirt_box    
 
 
@@ -142,14 +142,15 @@ def detect_shirt_colour():
     rospy.loginfo('shirt_detection\tNODE INIT')
 
     # Set the ROS spin rate: 1Hz ~ 1 second
-    # rate = rospy.Rate(1)        ############ Can make this an argument in launch and streamline rates##############
+    rate = rospy.Rate(120)        ############ Can make this an argument in launch and streamline rates##############
 
     # Subscriber callbacks
     rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, camera_callback, queue_size=1)
 
     # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
     while not rospy.is_shutdown():
-        rospy.spin()
+        # rospy.spin()
+        rate.sleep()
 
 if __name__ == '__main__':
     try:

@@ -40,11 +40,11 @@ def show_image(window_name, frame):
 
 #################################################################################
 # Function to add rectangle bounding box to image frame
-def bounding_box_to_frame(bounding_box, frame):
+def bounding_box_to_frame(bounding_box, frame, box_colour):
 
     # Loop through the bounding box data points
     for (x, y, w, h) in bounding_box:
 
         # Add the box to the frame as a rectangle
-        cv.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        cv.rectangle(frame, (x, y), (x+w, y+h), box_colour, 2)
     return frame

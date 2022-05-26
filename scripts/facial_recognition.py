@@ -45,7 +45,7 @@ class recognise_face:
     def publish_box(self):
 
         # Set the ROS rate for publishing
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(120)
 
         # # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():
@@ -58,6 +58,7 @@ class recognise_face:
 
             # Sleep for the rest of the ROS rate
             rate.sleep()
+            # rospy.spin()
 
     #############################################################################
     def camera_callback(self, frame):
