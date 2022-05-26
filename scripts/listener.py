@@ -95,19 +95,37 @@ class listener:
         # ROS rate of the listener needs to be slower than the shirt colour and facial publishers
         rate = rospy.Rate(25)   
 
+        # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():
 
-            if self.faced_detected:
-                print("face detected")
-                self.faced_detected = False
-            else:
-                print("no face")
+            # Test if enemy face detected
+            if self.faced_detected and self.enemy_seen:
 
-            if self.enemy_seen:
-                print("\t\tenemy FOUND FUCK")
+                print("face detected AND enemy spotted")
+                self.faced_detected = False
                 self.enemy_seen = False
+
+                # Loop through to test the face bounding boxes
+                for (xf, yf, wf, hf) in self.face_boxes:
+                    
+                    # Loop through the enemy shirt boxes
+                    for (xe, ye, we, he) in self.enemy_boxes:
+
+                        # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
+                        if xf >= xe and xf + wf <= xe + we and yf + hf < ye:
+
+                            # 
+                            print([xe, yf, we, hf+he])
+                            # cv.rectangle(self.converted_frame, (xe, yf), (xe+we, yf+hf+he), (0, 0, 255), 2)
+
+                            frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], converted_frame, (0, 0, 255))
+                            camera_functions.show_image("Bounding Box Over Enemy", frame)
+
+                # print(self.face_boxes)
+                # print(self.enemy_boxes)
+
             else:
-                print("\t\tsafe boys")
+                print("safe boys")
 
             if self.homie_seen:
                 print("\t\t\t\thomie seen")
@@ -213,8 +231,8 @@ class listener:
         self.faced_detected = True
 
         # Show bounding box on frame
-        frame = camera_functions.bounding_box_to_frame(self.face_boxes, converted_frame, (255, 0, 0))
-        camera_functions.show_image("Testing facial bounding box", frame)
+        # frame = camera_functions.bounding_box_to_frame(self.face_boxes, converted_frame, (255, 0, 0))
+        # camera_functions.show_image("Testing facial bounding box", frame)
 
     #############################################################################
     def enemy_sighted(self, b_box):
@@ -238,9 +256,9 @@ class listener:
         self.enemy_seen = True
 
         # Show red bounding box on frame
-        # frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, self.converted_frame, (0, 0, 255))
+        # frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, converted_frame, (0, 0, 255))
         # self.frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, self.frame, (0, 0, 255))
-        # camera_functions.show_image("Testing RED SHIRT ENEMY bounding box", self.frame)
+        # camera_functions.show_image("Testing RED SHIRT ENEMY bounding box", frame)
 
     #############################################################################
     def homies_sighted(self, b_box):
