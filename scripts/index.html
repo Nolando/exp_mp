@@ -227,9 +227,14 @@
     // Image topic for compressed image preferred for webservers
     var cam_stream = new ROSLIB.Topic({
       ros: ros, 
-      name: '/camera/color/image_raw/compressed',   // CHANGE THIS TO DJANGO BOUNDING BOX FRAME
+      name: '/camera/color/image_raw/compressed',
       messageType: 'sensor_msgs/CompressedImage'
     });
+    // var cam_stream = new ROSLIB.Topic({
+    //   ros: ros, 
+    //   name: '/django/gui_scene/compressed',
+    //   messageType: 'sensor_msgs/CompressedImage'
+    // });
 
     // Create camera stream variable
     var robot_stream = undefined;

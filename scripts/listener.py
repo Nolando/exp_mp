@@ -8,56 +8,22 @@
 
 import rospy
 import cv2 as cv
+from cv_bridge import CvBridge
 import numpy as np
-from exp_mp.msg import bounding_box
 from sensor_msgs.msg import CompressedImage
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
-
 import camera_functions
 
 
-#################################################################################
-# CHANGE TO LOGIC OF HAVING BOTH BOUNDING BOXES AND GETTING WHOLE BOX (TORSO)
-# def django_eyes(frame):
+# Create the publisher
+gui_pub = rospy.Publisher("/django/gui_scene/compressed", CompressedImage, queue_size=1)
 
+# Initialize the CvBridge class
+bridge = CvBridge()
 
-    # CHANGE TO LOGIC OF BOTH BOXES....
-    
-    # # Initially empty bounding box
-    # whole_bounding_box_R = []
-    # whole_bounding_box_G = []
-
-    # # Test if face was detected and either red or green shirt was found
-    # if (shirt_bounding_box_R.size is not 0 or shirt_bounding_box_G.size is not 0) and face_bounding_box is not tuple():       
-        
-    #     # Loop through to test the detected bounding boxes
-    #     for (xf, yf, wf, hf) in face_bounding_box:
-    #         for (xs, ys, ws, hs) in shirt_bounding_box_R:
-
-    #             # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
-    #             if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
-                    
-    #                 # Get the total bounding box of the torso
-    #                 whole_bounding_box_R.append([xs, yf, ws, hf+hs])
-
-    #         for (xs, ys, ws, hs) in shirt_bounding_box_G:
-    #             if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
-    #                 whole_bounding_box_G.append([xs, yf, ws, hf+hs])
-
-    #     # Convert to numpy
-    #     whole_bounding_box_R = np.array(whole_bounding_box_R)
-    #     whole_bounding_box_G = np.array(whole_bounding_box_G)
-
-    #     # Add bounding box to the frame
-    #     for (x, y, w, h) in whole_bounding_box_R:
-    #         cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    #     for (x, y, w, h) in whole_bounding_box_G:
-    #         cv.rectangle(cv_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    
-    # # Show the detected features with bounding boxes
-    # show_image("Converted Image", cv_frame)
-
+# global converted_frame
+publish_frame = CompressedImage()
 
 #################################################################################
 # Class definition
@@ -66,8 +32,6 @@ class listener:
     #############################################################################
     # Initialisation constructor function creates the subscribers
     def __init__(self):
-
-        # global converted_frame
 
         # Variable initialisation
         self.converted_frame = np.empty((2,2))      # CV2 compatible current camera feed
@@ -103,7 +67,6 @@ class listener:
             # Test if enemy face detected
             if self.faced_detected and self.enemy_seen:
 
-                print("face detected AND enemy spotted")
                 self.faced_detected = False
                 self.enemy_seen = False
 
@@ -116,6 +79,8 @@ class listener:
                         # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
                         # Using hf/2 in case the shirt covers bottoms of face height
                         if xe <= xf and xf + wf <= xe + we and yf + hf/2 < ye:
+
+                            print("Confirmed enemy spotted")
 
                             # Get the whole bounding box
                             # self.whole_bounding_box_R = [[xe, yf, we, hf+he]]
@@ -133,7 +98,6 @@ class listener:
             # Test green shirt and face detected
             if self.faced_detected and self.homie_seen:
 
-                print("face detected AND homie spotted")
                 self.faced_detected = False
                 self.homie_seen = False
 
@@ -143,14 +107,22 @@ class listener:
 
                         # Get the whole bounding box over the person
                         if xe <= xf and xf + wf <= xe + we and yf + hf/2 < ye:
+                            print("Confirmed homedog spotted")
                             self.converted_frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], self.converted_frame, (0, 255, 0))
                             # camera_functions.show_image("Bounding Box Over HOMIE", self.converted_frame)
 
             else:
-                print("\t\t\t\tno homedogs rip")
+                print("\t\t\tnope")
 
             # Show the bounding box and frames
             # COULD PUBLISH THIS TO GUI??? HERE
+
+            # Convert from CV2 image to ROS compressed image
+            # publish_frame.data = bridge.cv2_to_compressed_imgmsg(self.converted_frame.tobytes(), dst_format='jpg')
+
+            # Publish the frame with bounding boxes
+            # gui_pub.publish(publish_frame)
+
             # camera_functions.show_image("DJANGO VISION", self.converted_frame)
 
             rate.sleep()
@@ -158,6 +130,8 @@ class listener:
     #############################################################################
     # Camera callback
     def django_eyes(self, frame):
+
+        # print(type(frame.data))
 
         # global converted_frame - WORKING
         self.converted_frame = camera_functions.camera_bridge_convert(frame)
