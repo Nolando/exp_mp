@@ -160,13 +160,11 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-catkin_install_python(PROGRAMS
-  scripts/dummy_image.py
-  scripts/listener.py
-  scripts/pub_bounding_box.py
-  scripts/ros_serial_test.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# catkin_install_python(PROGRAMS
+  # scripts/listener.py
+  # scripts/ros_serial_test.py
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html

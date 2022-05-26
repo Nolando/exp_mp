@@ -85,7 +85,7 @@ def listener():
 
     # Subscriber callbacks
     rospy.Subscriber("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), see_face, queue_size=1)
-    rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), enemy_sighted, queue_size=1)
+    # rospy.Subscriber("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), enemy_sighted, queue_size=1)
     # rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), homies_sighted, queue_size=1)
 
     # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
