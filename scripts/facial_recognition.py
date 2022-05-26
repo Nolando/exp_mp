@@ -13,22 +13,6 @@ from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 
 
-from scipy.misc import face
-import pandas as pd
-import glob
-from matplotlib import pyplot as plt
-import torch
-import torch.nn as nn
-import torch.nn.functional as functional
-import torch.optim as optim
-import torchvision
-from torchvision.io import read_image
-from torch.utils.data import Dataset, DataLoader
-
-
-from torchvision import datasets
-from torchvision.transforms import ToTensor
-
 # Create the publisher
 face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(Floats))
 
@@ -36,6 +20,7 @@ face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(
 # + LATENCY fixed by setting camera subscriber queue size to 1
 cascadePath = 'haarcascade_frontalface_default.xml'
 faceCascade = cv.CascadeClassifier(cv.data.haarcascades + cascadePath)
+
 
 #################################################################################
 class recognise_face:
