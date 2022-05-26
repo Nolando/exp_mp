@@ -87,7 +87,7 @@ class recognise_face:
         # Adjust the resolution percentage decrease - FOR FASTER DETECTION
         # 100% resolution range is around 5m
         # 70% resolution range is around 2.5-3m
-        percentage_decrease = 80
+        percentage_decrease = 100
 
         # Get the width and height dimensions
         width = int(img_gray.shape[1] * percentage_decrease / 100)

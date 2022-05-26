@@ -123,7 +123,7 @@ class listener:
             # Publish the frame with bounding boxes
             # gui_pub.publish(publish_frame)
 
-            # camera_functions.show_image("DJANGO VISION", self.converted_frame)
+            camera_functions.show_image("DJANGO VISION", self.converted_frame)
 
             rate.sleep()
 
