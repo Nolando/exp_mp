@@ -14,7 +14,7 @@ from rospy.numpy_msg import numpy_msg
 
 
 # Create the publisher
-face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(Floats))
+face_box_pub = rospy.Publisher("/django/eagle_eye/bounding_box_face", numpy_msg(Floats), queue_size=1)
 
 # Initialise the face cascade classifier (done outside of function to try improve latency)
 # + LATENCY fixed by setting camera subscriber queue size to 1
@@ -29,7 +29,7 @@ class recognise_face:
     def __init__(self):
 
         # Initialise bounding box variable
-        self.box = np.array([1.1234,3.2312,86.3453,20.2099], dtype=np.float32)
+        self.box = np.array([0, 0, 0, 0], dtype=np.float32)
         
         # ROS node initialisation
         rospy.init_node('facial_recognition', anonymous=True)
@@ -44,8 +44,8 @@ class recognise_face:
     #############################################################################
     def publish_box(self):
 
-        # Set the ros rate for publishing
-        rate = rospy.Rate(1)
+        # Set the ROS rate for publishing
+        rate = rospy.Rate(50)
 
         # # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():

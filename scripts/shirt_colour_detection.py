@@ -9,10 +9,12 @@ import numpy as np
 from std_msgs.msg import Int64MultiArray
 from sensor_msgs.msg import CompressedImage
 import camera_functions
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
 
 # Create the publishers
-shirt_box_pub_R = rospy.Publisher("/django/eagle_eye/bounding_box_enemy", Int64MultiArray, queue_size=1)
-shirt_box_pub_G = rospy.Publisher("/django/eagle_eye/bounding_box_homies", Int64MultiArray, queue_size=1)
+shirt_box_pub_R = rospy.Publisher("/django/eagle_eye/bounding_box_enemy", numpy_msg(Floats), queue_size=1)
+shirt_box_pub_G = rospy.Publisher("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), queue_size=1)
 
 # Set the limits for the colours (in HSV)
 red_low_limit_lower = np.array([0, 100, 90])           # Red
@@ -30,10 +32,6 @@ def camera_callback(frame):
     # log some info about the image topic
     # rospy.loginfo('shirt_detection\tCAMERA FRAME RECEIVED')
 
-    # Create the variable to publish
-    shirt_bounding_box_R = Int64MultiArray()
-    shirt_bounding_box_G = Int64MultiArray()
-
     # Convert the ROS image to OpenCV compatible image
     converted_frame = camera_functions.camera_bridge_convert(frame)
 
@@ -45,11 +43,17 @@ def camera_callback(frame):
     mask_G = green_mask(hsv_frame)
 
     # Colour segment to get the bounding box for shirts for red and green
-    shirt_bounding_box_R.data = colour_segmentation(mask_R)          # np.ndarray
-    shirt_bounding_box_G.data = colour_segmentation(mask_G)
+    shirt_bounding_box_R = colour_segmentation(mask_R)          # np.ndarray
+    shirt_bounding_box_G = colour_segmentation(mask_G)
+
+    print(shirt_bounding_box_R)
+    
+    # Convert to 1D array from 2D
+    shirt_bounding_box_R = shirt_bounding_box_R.flatten()
+    shirt_bounding_box_G = shirt_bounding_box_G.flatten()
 
     # Test if the returned variable contains a detected face bounding box
-    if shirt_bounding_box_R.data.size is not 0:
+    if shirt_bounding_box_R.size is not 0:
 
         # Log message
         # rospy.loginfo('shirt_detection\tDETECTED RED SHIRT SLAVE MASTER ' + np.array2string(shirt_bounding_box_R))
@@ -63,7 +67,7 @@ def camera_callback(frame):
         # camera_functions.show_image("shirt_detection node RED", converted_frame)
 
     # Disabling for now until green shirt bought - NEED TO FIX THRESHOLDS
-    if shirt_bounding_box_G.data.size is not 0:
+    if shirt_bounding_box_G.size is not 0:
         # rospy.loginfo('shirt_detection\tDETECTED GREEN SHIRT HOMIES ' + np.array2string(shirt_bounding_box_G))
         shirt_box_pub_G.publish(shirt_bounding_box_G)
 

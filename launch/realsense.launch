@@ -12,6 +12,14 @@
 
     <!-- NODE EXECUTABLES: NEED TO CHMOD OR SUDO CHMOD THE EXECUTABLE FOR THIS TO WORK -->
 
+    <!-- Launches the listener node using the listener.py executable from the exp_mp package. Respawns 
+         node if quit and output is to terminal screen  -->
+    <node   name="listener" 
+            pkg="exp_mp" 
+            type="listener.py" 
+            respawn="true" 
+            output="screen"/>
+
     <!-- Facial recognition node reads from the realsense camera and detects face bounding boxes -->
     <node   name="facial_recognition" 
             pkg="exp_mp" 
@@ -25,14 +33,6 @@
             type="shirt_colour_detection.py" 
             respawn="true"
             output="screen"/> -->
-
-    <!-- Launches the listener node using the listener.py executable from the exp_mp package. Respawns 
-         node if quit and output is to terminal screen  -->
-    <node   name="listener" 
-            pkg="exp_mp" 
-            type="listener.py" 
-            respawn="true" 
-            output="screen"/>
     
 
 </launch>
