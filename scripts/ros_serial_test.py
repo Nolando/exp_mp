@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # license removed for brevity
 import serial
+import sleep
 import rospy
 import numpy as np
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
+from std_msgs.msg import Int8, Bool
 
 
 class to_arduino():
@@ -14,6 +16,8 @@ class to_arduino():
         print('Launching serial output')
 
         # ROS setup
+        rospy.Subscriber("/django/mode", Int8, self.set_mode, queue_size=1)
+        rospy.Subscriber("/django/fire_gun", Bool, self.set_fire, queue_size=1)
         rospy.Subscriber("/django/target_heart", numpy_msg(Floats), self.engage_enemy, queue_size=1)
 
 
@@ -22,12 +26,24 @@ class to_arduino():
         # print(arduino.name)
 
         # Camera specs
-        self.cam_fov_half = 69.0/2         # degrees
-        self.cam_width_half = 640.0/2     # px
+        self.mode = 1                    # 1 = auto, 0 = manual
+        self.cam_fov_half = 69.0/2       # degrees
+        self.cam_width_half = 640.0/2    # px
 
         # Logic setup
         self.angle_servo = 90            # Central angle for servo
         self.gear_ratio = 2.1            # Ratio of 2.1:1 (gun:servo)
+
+    def set_mode(self, new_mode):
+
+        self.mode = new_mode
+        print('Firing requested')
+
+
+    def set_fire(self, new_fire):
+
+        self.fire = new_fire
+        print('Swtiching modes')
 
 
     def engage_enemy(self, centroids):
@@ -52,6 +68,18 @@ class to_arduino():
 
         angle_out = self.angle_servo - adjustment_servo
         print('angle_out', angle_out)
+
+        # If user has to requested fire, shoot then set to false again
+        if self.fire == True:
+            self.fire = False
+
+        # If in manual mode and user hasn't requested to fire, don't fire
+        elif self.mode == 0:
+            angle_out += 1000
+            print('Holding fire')
+
+        if self.mode == 1:
+            time.sleep(5)
 
         # self.arduino.write(angle_out)
 
