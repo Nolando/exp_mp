@@ -67,6 +67,8 @@ class listener:
     # Initialisation constructor function creates the subscribers
     def __init__(self):
 
+        # global converted_frame
+
         # Variable initialisation
         self.converted_frame = np.empty((2,2))      # CV2 compatible current camera feed
         self.face_boxes = np.empty((1,4))
@@ -93,7 +95,7 @@ class listener:
     def test(self):
 
         # ROS rate of the listener needs to be slower than the shirt colour and facial publishers
-        rate = rospy.Rate(25)   
+        rate = rospy.Rate(40)   
 
         # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():
@@ -112,14 +114,18 @@ class listener:
                     for (xe, ye, we, he) in self.enemy_boxes:
 
                         # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
-                        if xf >= xe and xf + wf <= xe + we and yf + hf < ye:
+                        # Using hf/2 in case the shirt covers bottoms of face height
+                        if xe <= xf and xf + wf <= xe + we and yf + hf/2 < ye:
 
-                            # 
-                            print([xe, yf, we, hf+he])
-                            # cv.rectangle(self.converted_frame, (xe, yf), (xe+we, yf+hf+he), (0, 0, 255), 2)
+                            # Get the whole bounding box
+                            # self.whole_bounding_box_R = [[xe, yf, we, hf+he]]
 
-                            frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], converted_frame, (0, 0, 255))
-                            camera_functions.show_image("Bounding Box Over Enemy", frame)
+                            # Add the bounding box to the frame
+                            self.converted_frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], self.converted_frame, (0, 0, 255))
+                            camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
+                            
+                
+                # camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
 
                 # print(self.face_boxes)
                 # print(self.enemy_boxes)
@@ -199,8 +205,7 @@ class listener:
     def django_eyes(self, frame):
 
         # global converted_frame - WORKING
-        global converted_frame
-        converted_frame = camera_functions.camera_bridge_convert(frame)
+        self.converted_frame = camera_functions.camera_bridge_convert(frame)
 
         # Boolean to track camera subscription
         self.eyes_open = True
@@ -256,8 +261,7 @@ class listener:
         self.enemy_seen = True
 
         # Show red bounding box on frame
-        # frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, converted_frame, (0, 0, 255))
-        # self.frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, self.frame, (0, 0, 255))
+        # frame = camera_functions.bounding_box_to_frame(self.enemy_boxes, self.converted_frame, (0, 0, 255))
         # camera_functions.show_image("Testing RED SHIRT ENEMY bounding box", frame)
 
     #############################################################################
