@@ -19,38 +19,6 @@
   <!-- ROS libjs -->
   <script src="./assets/js/roslib.min.js"></script>
   
-  <!---------------------------------------------------------------------------------------------->
-
-  <!-- Custom CSS code -->
-  <style type="text/css">
-
-    /* Flickering light for connected robot */
-    .green-light {
-      animation:
-        greenLight 1s infinite;
-    }
-    @keyframes greenLight{
-      0%   { color: #303030; }
-      25%  { color: #4ea752; }
-      50%  { color: #4ea752; }
-      75%  { color: #303030; }
-      100% { color: #303030; }
-    }
-
-    /* Flickering light for disconnected robot */
-    .red-light {
-      animation:
-        redLight 1s infinite;
-    }
-    @keyframes redLight{
-      0%   { color: #303030; }
-      25%  { color: #da3a36; }
-      50%  { color: #da3a36; }
-      75%  { color: #303030; }
-      100% { color: #303030; }
-    }
-
-  </style>
 </head>
 
 <!---------------------------------------------------------------------------------------------->
@@ -65,7 +33,7 @@
           <b class="navbar-brand" style="font-weight:bold; font-size:32px">
 
             <!-- Flickering status indication icon -->
-            <i id="cas-active" class="material-icons red-light">fiber_manual_record</i>
+            <i id="cas-active" class="material-icons"></i>
             DJANGOOO Robot User Interface
           </b>
         </div>
@@ -175,17 +143,9 @@
 
     // When connected to websocket server, show green light flickering icon
     ros.on( 'connection', function() {
-      document.getElementById( 'cas-active' ).classList.remove( 'red-light' );
-      document.getElementById( 'cas-active' ).classList.add( 'green-light' );
 
       // Call the function to subscribe to image topic
       image_subscribe();
-    });
-
-    // When disconnected to websocket server, show red light flickering icon
-    ros.on( 'close', function() {
-      document.getElementById('cas-active').classList.remove('green-light');
-      document.getElementById('cas-active').classList.add('red-light');
     });
 
     // Check for rosbridge connection every second (1000ms)
@@ -241,7 +201,6 @@
 
     }
 
-
     // ######################### Fire Gun ################################
 
     // For getting the user order input details from the GUI
@@ -281,30 +240,6 @@
       cam_stream.subscribe( function(message) {
         document.getElementById( 'django_camera' ).src = "data:image/jpg;base64," + message.data;
       });
-    }
-
-    // ################### Customise connection status ##################
-
-    // Connection status when successful
-    function stream_success() {
-
-      // Change card format to green
-      document.getElementById( 'camera-status' ).classList.remove( 'card-header-warning' );
-      document.getElementById( 'camera-status' ).classList.add( 'card-header-success' );
-
-      // Show successful connection message under status header
-      document.getElementById( 'camera-status-desc' ).innerHTML = '<i class="material-icons">access_time</i> Running Successfully';
-    }
-
-    // Connection status when unsuccessful
-    function stream_warn() {
-
-      // Change card format to orange
-      document.getElementById( 'camera-status' ).classList.remove( 'card-header-success' ); 
-      document.getElementById( 'camera-status' ).classList.add( 'card-header-warning' );
-
-      // Show unsuccessful connection message under status header
-      document.getElementById( 'camera-status-desc' ).innerHTML = '<i class="material-icons">error</i> Not Connected';
     }
 
     // ################### Alert and stream handlers ####################
