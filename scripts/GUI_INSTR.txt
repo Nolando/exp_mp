@@ -1,0 +1,30 @@
+INSIDE WEBPAGE FOLDER:
+virtualenv venv --python=python3
+source venv/bin/activate
+
+CHECK IP:
+PUBLIC IP:  curl ifconfig.me
+LOCAL IP:   hostname -I
+
+RUN THE WEBPAGE:
+python -m http.server
+
+ADDRESS IN FORM: <IP>:PORTNUMBER, PUT IN BROWSER
+EXAMPLE: 192.168.0.16:8000
+
+RUN GAZEBO SIMULATION OR TURTLEBOT3 NORMALLY
+SIM: 
+source ~/.bashrc
+export TB3_MODEL=burger
+export TURTLEBOT3_MODEL=${TB3_MODEL}
+roslaunch turtlebot3_gazebo turtlebot3_empty_world.launch
+
+LAUNCH ROSBRIDGE
+roslaunch rosbridge_server rosbridge_websocket.launch
+
+REFRESH WEBPAGE ON BROWSER
+
+CHANGES IN THE HTML CODE IS RUN BY REFRESHING THE WEBPAGE
+
+AFTER DONE, NEED TO EXIT VIRTUALENV:
+deactivate

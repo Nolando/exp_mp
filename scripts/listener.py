@@ -95,7 +95,7 @@ class listener:
     def create_whole_box(self):
 
         # ROS rate of the listener needs to be slower than the shirt colour and facial publishers
-        rate = rospy.Rate(10)   
+        rate = rospy.Rate(15)   
 
         # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():
@@ -131,7 +131,7 @@ class listener:
                 # print(self.enemy_boxes)
 
             # Test green shirt and face detected
-            elif self.faced_detected and self.homie_seen:
+            if self.faced_detected and self.homie_seen:
 
                 print("face detected AND homie spotted")
                 self.faced_detected = False
@@ -150,7 +150,8 @@ class listener:
                 print("\t\t\t\tno homedogs rip")
 
             # Show the bounding box and frames
-            camera_functions.show_image("Bounding Box Over HOMIE", self.converted_frame)
+            # COULD PUBLISH THIS TO GUI??? HERE
+            # camera_functions.show_image("DJANGO VISION", self.converted_frame)
 
             rate.sleep()
 
@@ -163,6 +164,8 @@ class listener:
 
         # Boolean to track camera subscription
         self.eyes_open = True
+
+        # camera_functions.show_image("Test", self.converted_frame)
 
         # Log some info about the image topic
         # rospy.loginfo("listener\tEYES ON")

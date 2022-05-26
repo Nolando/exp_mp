@@ -1,0 +1,390 @@
+<!-- 
+    index.html
+    Machine Unlearning
+-->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Website title -->
+  <title>DJANGOOOO</title>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="assets/css/roboto.css" />
+
+  <!-- CSS template material kit -->
+  <link href="assets/css/material-dashboard.css?v=2.1.0" rel="stylesheet" />
+
+  <!-- ROS libjs -->
+  <script src="./assets/js/roslib.min.js"></script>
+  
+  <!---------------------------------------------------------------------------------------------->
+
+  <!-- Custom CSS code -->
+  <style type="text/css">
+
+    /* Flickering light for connected robot */
+    .green-light {
+      animation:
+        greenLight 1s infinite;
+    }
+    @keyframes greenLight{
+      0%   { color: #303030; }
+      25%  { color: #4ea752; }
+      50%  { color: #4ea752; }
+      75%  { color: #303030; }
+      100% { color: #303030; }
+    }
+
+    /* Flickering light for disconnected robot */
+    .red-light {
+      animation:
+        redLight 1s infinite;
+    }
+    @keyframes redLight{
+      0%   { color: #303030; }
+      25%  { color: #da3a36; }
+      50%  { color: #da3a36; }
+      75%  { color: #303030; }
+      100% { color: #303030; }
+    }
+
+  </style>
+</head>
+
+<!---------------------------------------------------------------------------------------------->
+
+<body id="main-background">
+  <div class="wrapper">
+    <div class="main-panel">
+
+      <!-- Webpage title and customisation for flickering status indicator -->
+      <nav class="navbar navbar-expand-lg navbar-transparent navbar-absolute fixed-top ">
+        <div class="container-fluid">
+          <b class="navbar-brand" style="font-weight:bold; font-size:32px">
+
+            <!-- Flickering status indication icon -->
+            <i id="cas-active" class="material-icons red-light">fiber_manual_record</i>
+            DJANGOOO Robot User Interface
+          </b>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div class="content">
+        <div class="container-fluid">
+          <div class="row">
+
+            <!-- Card for the PizzaRobot connection status information  -->
+            <div class="col-xl-4 col-lg-12">
+              <div class="card card-chart">
+
+                <!-- Initally disconnected so is orange -->
+                <div id="camera-status" class="card-header card-header-warning">
+                  <h4 class="card-title">Django Connection</h4>
+                </div>
+                <div class="card-body" style="padding: 10px">
+                </div>
+
+                <!-- Message under the heading to indicate connection status, initially no connected -->
+                <div class="card-footer">
+                  <div id="camera-status-desc" class="stats" style="font-size:16px">
+                    <i class="material-icons">error</i> Not Connected
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+
+            <!-- Camera stream display on left side -->
+            <div class="col-lg-6 col-md-12">
+              <div class="card">
+
+                <!-- Header of section -->
+                <div class="card-header card-header-tabs card-header-danger">
+                  <div class="nav-tabs-navigation">
+                    <div class="nav-tabs-wrapper">
+                      <span class="nav-tabs-title" style="font-size:18px">Through the eyes of Django</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Show the camera stream from the subscribed topic -->
+                <div class="card-body">
+                  <div class="tab-content">
+                    <div class="tab-pane active" id="left_tab">
+
+                      <!-- Default when no stream shows the placeholder -->
+                      <img id="django_camera" style='height: 100%; width: 100%; object-fit: contain'
+                        src="assets/django_face.jpg">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PizzaRobot data panel on right side -->
+            <div class="col-lg-6 col-md-12">
+              <div class="card">
+
+                <!-- Header of section -->
+                <div class="card-header card-header-tabs card-header-danger">
+                  <div class="nav-tabs-navigation">
+                    <div class="nav-tabs-wrapper">
+                      <span class="nav-tabs-title" style="font-size:18px">Django Commands</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Customer input card body -->
+                <div class="card-body">
+                  <div class="tab-content">
+                    <div class="tab-pane active" id="right_tab">
+                      <h5>Select mode of operation</h5>
+                      <button onclick="manual_mode();"
+                        class="btn btn-danger">Manual fire</button>
+                      <button onclick="auto_mode();"
+                        class="btn btn-danger">Auto fire</button>
+
+                      <hr>
+
+                      <h5>Press button to fire</h5>
+
+                      <!-- Button click fires the gun by publishing boolean to topic -->
+                      <button onclick="fire_gun();"
+                        class="btn btn-danger">FIRE</button>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer for group information -->
+      <footer class="footer">
+        <div class="container-fluid">
+          <div class="copyright">
+            PizzaRobot by H.A.A.A.
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+
+  <!-- ROS interface -->
+  <script type="text/javascript" type="text/javascript">
+    window.onload = function() {
+    };
+
+    // ##################### Connecting to ROS ############################
+
+    // Rosbridge server URL for GUI
+    var rosbridge_url = 'ws://localhost:9090';
+
+    // Create ROS node object to communicate with rosbridge server
+    var ros = new ROSLIB.Ros({
+      url : rosbridge_url
+    });
+
+    // When connected to websocket server, show green light flickering icon
+    ros.on( 'connection', function() {
+      document.getElementById( 'cas-active' ).classList.remove( 'red-light' );
+      document.getElementById( 'cas-active' ).classList.add( 'green-light' );
+
+      // Call the function to subscribe to image topic
+      image_subscribe();
+    });
+
+    // When disconnected to websocket server, show red light flickering icon
+    ros.on( 'close', function() {
+      document.getElementById('cas-active').classList.remove('green-light');
+      document.getElementById('cas-active').classList.add('red-light');
+    });
+
+    // Check for rosbridge connection every second (1000ms)
+    window.setInterval( function() {
+
+      // Return if already connected
+      if ( ros.isConnected ) {
+        return;
+      }
+
+      // When not connected, connect to the rosbridge server
+      ros.connect( rosbridge_url );
+    }, 1000);
+
+    // ######################### Modes ################################
+    // Manual mode of operation
+    function manual_mode() {
+
+        // Create new ROS topic
+        var input_delivery_data = new ROSLIB.Topic({
+            ros: ros,
+            name: '/django/mode',
+            messageType: 'std_msgs/Int8'
+        });
+
+        // The input house number integer to publish
+        var mode_choice = new ROSLIB.Message({
+            data: 0
+        });
+
+        // Publish the information
+        input_delivery_data.publish( mode_choice );
+
+    }
+
+    // Automatic mode of operation
+    function auto_mode() {
+
+        // Create new ROS topic
+        var input_delivery_data = new ROSLIB.Topic({
+            ros: ros,
+            name: '/django/mode',
+            messageType: 'std_msgs/Int8'
+        });
+
+        // The input house number integer to publish
+        var mode_choice = new ROSLIB.Message({
+            data: 1
+        });
+
+        // Publish the information
+        input_delivery_data.publish( mode_choice );
+
+    }
+
+
+    // ######################### Fire Gun ################################
+
+    // For getting the user order input details from the GUI
+    function fire_gun() {
+
+      // Create new ROS topic
+      var input_delivery_data = new ROSLIB.Topic({
+        ros: ros,
+        name: '/django/fire_gun',
+        messageType: 'std_msgs/Bool'
+      });
+
+      // The input house number integer to publish
+      var user_input = new ROSLIB.Message({
+        data: true
+      });
+
+      // Publish the information
+      input_delivery_data.publish( user_input );
+    }
+
+    // ################## Subscribe to image topics #######################
+
+    // Image topic for compressed image preferred for webservers
+    var cam_stream = new ROSLIB.Topic({
+      ros: ros, 
+      name: '/camera/color/image_raw/compressed',   // CHANGE THIS TO DJANGO BOUNDING BOX FRAME
+      messageType: 'sensor_msgs/CompressedImage'
+    });
+
+    // Create camera stream variable
+    var robot_stream = undefined;
+
+    // Function to subscribe to the camera stream
+    function image_subscribe() {
+      robot_stream = cam_stream;
+      cam_stream.subscribe( function(message) {
+        document.getElementById( 'django_camera' ).src = "data:image/jpg;base64," + message.data;
+      });
+    }
+
+    // ################### Customise connection status ##################
+
+    // Connection status when successful
+    function stream_success() {
+
+      // Change card format to green
+      document.getElementById( 'camera-status' ).classList.remove( 'card-header-warning' );
+      document.getElementById( 'camera-status' ).classList.add( 'card-header-success' );
+
+      // Show successful connection message under status header
+      document.getElementById( 'camera-status-desc' ).innerHTML = '<i class="material-icons">access_time</i> Running Successfully';
+    }
+
+    // Connection status when unsuccessful
+    function stream_warn() {
+
+      // Change card format to orange
+      document.getElementById( 'camera-status' ).classList.remove( 'card-header-success' ); 
+      document.getElementById( 'camera-status' ).classList.add( 'card-header-warning' );
+
+      // Show unsuccessful connection message under status header
+      document.getElementById( 'camera-status-desc' ).innerHTML = '<i class="material-icons">error</i> Not Connected';
+    }
+
+    // ################### Alert and stream handlers ####################
+
+    // Alert camera timing variable
+    var alerts = { 'camera': {'last_update_time': 0.0, 'last_time': 0.0, 'play_length': 0.5 }}
+
+    // Handles the alerts and changes stream status
+    function alerts_handler() {
+
+      // Get current time in seconds
+      var time_now = new Date().getTime() / 1000;
+
+      // Time of stop is the time of last plus 0.5s
+      time_stop = alerts['camera']['last_time'] + alerts['camera']['play_length'];
+
+      // If connection status successful
+      if ( time_now > time_stop ) {
+        stream_success();
+      } 
+
+      // Status update to not connected
+      else if( !ros.isConnected ) {
+        stream_warn();
+      }
+    }
+
+    // Function to control the camera stream
+    function stream_handler() {
+
+      // Get current time in seconds
+      var time_now = new Date().getTime() / 1000;
+
+      // Check if time since last update greater than 2 seconds and update last time to current
+      if ( time_now - alerts['camera']['last_update_time'] > 2.0 ) {
+        alerts['camera']['last_time'] = time_now;
+      }
+    }
+
+    // Update the footage from the camera stream topic
+    function update_stream() {
+
+      // Get current time in seconds
+      var time_now = new Date().getTime() / 1000;
+
+      // Save the time of the last stream update
+      alerts['camera']['last_update_time'] = time_now;
+    }
+
+    // Handle alerts every 500ms
+    window.setInterval( function(){
+      alerts_handler();
+    }, 500);
+
+    // Handle camera stream every 100ms
+    window.setInterval( function(){
+      stream_handler();
+    }, 100);
+
+  </script>
+</body>
+
+</html>
