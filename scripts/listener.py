@@ -6,6 +6,7 @@
 # FOR REALSENSE INSTALL: sudo apt-get install ros-melodic-realsense2-camera
 # FOR REALSENSE INFO: https://github.com/IntelRealSense/realsense-ros
 
+from numpy import dtype
 import rospy
 import cv2 as cv
 from cv_bridge import CvBridge
@@ -18,6 +19,7 @@ import camera_functions
 
 # Create the publisher
 gui_pub = rospy.Publisher("/django/gui_scene/compressed", CompressedImage, queue_size=1)
+target_pub = rospy.Publisher("/django/target_heart", numpy_msg(Floats), queue_size=1)
 
 # Initialize the CvBridge class
 bridge = CvBridge()
@@ -88,6 +90,10 @@ class listener:
                             # Add the bounding box to the frame
                             self.converted_frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], self.converted_frame, (0, 0, 255))
                             # camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
+
+                            # Publish the heart location
+                            to_publish = np.array([xe+we/2], dtype=np.float32)
+                            target_pub.publish(to_publish)
                             
                 
                 # camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
