@@ -1,0 +1,80 @@
+// Arduino code to read serial and fire - Machine Unlearning
+
+// Header files
+
+#include <Servo.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Initialise variables
+
+// Set the servo gear
+Servo gear_servo;
+
+// Assign the motor pin
+const int motorPin = 9;
+char pos;
+int pos_int;
+
+void setup() {
+
+  // Set the motor pin as an output
+  pinMode(motorPin, OUTPUT);
+  gear_servo.attach(10);
+  
+  // Set the serial baud rate, initialise the serial commands
+  Serial.begin(9600);
+  Serial.println("Initialising firing mechanism...");
+  Serial.println("Calibrating to 0 degrees");
+
+  // Move the gear to the '0' state
+  gear_servo.write(90);
+  delay(2000);
+}
+
+void loop() {
+
+  // Check to see if theres a serial read available to be parsed
+  if (Serial.available()>0) {
+
+    pos = Serial.read();
+    pos_int = pos - '0';
+    pos_int = pos_int + 48;
+    Serial.println(pos_int);
+    
+    // Set the position to be a serial read float
+    //int pos = Serial.parseInt();
+
+    // Bound the angle change
+    if (pos >= 0 && pos <= 180){
+
+      // Start the flywheel
+      digitalWrite(motorPin, HIGH);
+      delay(500);
+
+      // Move the gear to new pos
+      gear_servo.write(pos);
+      delay(3500);
+
+      // Turn off the motor
+      digitalWrite(motorPin, LOW);
+
+      // Move back to the zero state
+      gear_servo.write(90);
+      Serial.read();  
+    }
+
+//    else if (pos >= 999 && pos <=1185){
+//      int angle = pos-1000;
+//      gear_servo.write(angle);
+//      delay(100);
+//      gear_servo.write(90);
+      
+//      
+//    }
+
+    
+  }
+
+}
