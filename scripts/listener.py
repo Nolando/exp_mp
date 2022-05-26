@@ -92,10 +92,10 @@ class listener:
         rospy.Subscriber("/django/eagle_eye/bounding_box_homies", numpy_msg(Floats), self.homies_sighted, queue_size=1)
 
     #############################################################################
-    def test(self):
+    def create_whole_box(self):
 
         # ROS rate of the listener needs to be slower than the shirt colour and facial publishers
-        rate = rospy.Rate(40)   
+        rate = rospy.Rate(10)   
 
         # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
         while not rospy.is_shutdown():
@@ -122,7 +122,7 @@ class listener:
 
                             # Add the bounding box to the frame
                             self.converted_frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], self.converted_frame, (0, 0, 255))
-                            camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
+                            # camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
                             
                 
                 # camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
@@ -130,74 +130,28 @@ class listener:
                 # print(self.face_boxes)
                 # print(self.enemy_boxes)
 
-            else:
-                print("safe boys")
+            # Test green shirt and face detected
+            elif self.faced_detected and self.homie_seen:
 
-            if self.homie_seen:
-                print("\t\t\t\thomie seen")
+                print("face detected AND homie spotted")
+                self.faced_detected = False
                 self.homie_seen = False
+
+                # Similarly loop through to test if eligible person detected
+                for (xf, yf, wf, hf) in self.face_boxes:
+                    for (xe, ye, we, he) in self.homie_boxes:
+
+                        # Get the whole bounding box over the person
+                        if xe <= xf and xf + wf <= xe + we and yf + hf/2 < ye:
+                            self.converted_frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], self.converted_frame, (0, 255, 0))
+                            # camera_functions.show_image("Bounding Box Over HOMIE", self.converted_frame)
+
             else:
                 print("\t\t\t\tno homedogs rip")
 
-            rate.sleep()
+            # Show the bounding box and frames
+            camera_functions.show_image("Bounding Box Over HOMIE", self.converted_frame)
 
-    #############################################################################
-    def create_whole_box(self):
-
-        # ROS rate
-        rate = rospy.Rate(50)
-
-        # Initially empty bounding box
-        self.whole_bounding_box_R = []
-        self.whole_bounding_box_G = []
-
-        # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
-        while not rospy.is_shutdown():
-
-            print(self.faced_detected)
-
-            if self.eyes_open:
-
-                # Test if face was detected and either red or green shirt was found
-                if (self.enemy_seen or self.homie_seen) and self.faced_detected:
-
-                    # Loop through to test the detected bounding boxes
-                    for (xf, yf, wf, hf) in self.face_boxes:
-
-                        # Enemy with red shirt
-                        for (xs, ys, ws, hs) in self.enemy_boxes:
-
-                            # If the x dimensions of the face are inside the box, then can assume that is a person (shirt with a face)
-                            if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
-                                
-                                # Get the total bounding box of the torso
-                                self.whole_bounding_box_R.append([xs, yf, ws, hf+hs])
-
-                        # Homie with green shirt
-                        # for (xs, ys, ws, hs) in self.homie_boxes:
-                        #     if xf >= xs and xf + wf <= xs + ws and yf + hf < ys:
-                        #         self.whole_bounding_box_G.append([xs, yf, ws, hf+hs])
-
-                    # Convert to numpy
-                    self.whole_bounding_box_R = np.array(self.whole_bounding_box_R)
-                    # self.whole_bounding_box_G = np.array(self.whole_bounding_box_G)
-
-                    # Add bounding box to the frame
-                    for (x, y, w, h) in self.whole_bounding_box_R:
-                        cv.rectangle(self.converted_frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
-                    # for (x, y, w, h) in self.whole_bounding_box_G:
-                    #     cv.rectangle(self.converted_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-                    self.faced_detected = False
-                    self.enemy_seen = False
-                    self.homie_seen = False
-
-                # Show the detected features with bounding boxes
-                camera_functions.show_image("Converted Image", self.converted_frame)
-
-                self.eyes_open = False
-                
-            # rospy.spin()
             rate.sleep()
 
     #############################################################################
@@ -313,8 +267,7 @@ def main():
     # listener()
 
     # Get the whole bounding box of detected people
-    listener_node.test()
-    # listener_node.create_whole_box()
+    listener_node.create_whole_box()
 
 if __name__ == '__main__':
     try:
