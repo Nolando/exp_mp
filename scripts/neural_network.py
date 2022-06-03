@@ -5,7 +5,7 @@
 
 # Packages
 import os
-import rospy
+#import rospy
 import cv2 as cv
 import pandas as pd
 import numpy as np
@@ -22,9 +22,7 @@ import PIL
 from PIL import Image
 from torchvision import datasets
 from torchvision.transforms import ToTensor
-from scipy.misc import face
-
-
+#from scipy.misc import face
 
 
 ################################################################################
@@ -36,7 +34,7 @@ def neural_network():
         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     # Training data path
-    trainingPath = '/home/aidanstapleton/ur5espace/src/exp_mp/scripts/faces/'
+    trainingPath = '/home/aidanstapleton/faces/'
 
     # Add the training images (selfies) to the training set data list
     imageDirectories = []
@@ -53,7 +51,26 @@ def neural_network():
     ####### Make a list of labels for each person of interest in the data set plus a category for 'other' ########
     # List of image labels (must correspond to the order of the images)
     nameLabels = ['Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Aidan', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran', 'Kieran']
-    labels = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,]
+    labels = []
+
+    for image in os.listdir(trainingPath):
+
+        # If image is of Aidan
+        if image.__contains__('aidan'):
+            labels.append(0)
+
+        # If image is of Kieran
+        elif image.__contains__('Kieran'):
+            labels.append(1)
+
+        # If the image is a random person
+        else:
+            labels.append(2)
+
+    print('Number of Aidans in training set =', labels.count(0))
+    print('Number of Kierans in training set =', labels.count(1))
+    print('Number of randoms in training set =', labels.count(2))
+
     # Assign the training dataset to faces file
     # trainset = torchvision.datasets.CIFAR10(root='faces', 
     #                                         train=True,     # True for training set
@@ -67,7 +84,7 @@ def neural_network():
     # Subscribe to the face box node to get the next testing data
     #testset = face_box_sub
     testingImages = trainingImages[0]
-
+ 
     # Create the custom training data set of selfies
     class trainingImageDataset(Dataset):
 
@@ -116,30 +133,32 @@ def neural_network():
     ################################ This section just prints info #########################################
     # classes = ('plane', 'car', 'bird', 'cat', 'deer', 
     #            'dog', 'frog', 'horse', 'ship', 'truck')
-    classes = ('Aidan', 'Antony', 'Kieran', 'Noah')
+    classes = ('Aidan', 'Kieran', 'Random Person')
+    
+    # print number of samples                                                       
+    print("Number of training samples is {}".format(len(trainingDataset)))
+    #print("Number of test samples is {}".format(len(testingSet)))
 
-    # # print number of samples                                                       
-    # print("Number of training samples is {}".format(len(trainingSet)))
-    # print("Number of test samples is {}".format(len(testingSet)))
+    # iterate through the training set print useful information
+    dataiter = iter(trainloader)
+    images, labels = dataiter.next()    # this gather one batch of data
 
-    # # iterate through the training set print useful information
-    # dataiter = iter(trainloader)
-    # images, labels = dataiter.next()    # this gather one batch of data
+    print("Batch size is {}".format(len(images)))
+    print("Size of each image is {}".format(images[0].shape))
 
-    # print("Batch size is {}".format(len(images)))
-    # print("Size of each image is {}".format(images[0].shape))
-
-    # print("The labels in this batch are: {}".format(labels))
-    # print("These correspond to the classes: {}, {}, {}, {}".format(
+    print("The labels in this batch are: {}".format(labels))
+    # print("These correspond to the classes: {}, {}, {}, {}, {}, {}, {}, {}".format(
     #     classes[labels[0]], classes[labels[1]],
-    #     classes[labels[2]], classes[labels[3]]))
+    #     classes[labels[2]], classes[labels[3]],
+    #     classes[labels[4]], classes[labels[5]],
+    #     classes[labels[6]], classes[labels[7]]))
 
-    # # plot images of the batch
-    # fig, ax = plt.subplots(1, len(images))
-    # for id, image in enumerate(images):
-    #     # convert tensor back to numpy array for visualization
-    #     ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
-    #     ax[id].set_title(classes[labels[id]])
+    # plot images of the batch
+    fig, ax = plt.subplots(1, len(images))
+    for id, image in enumerate(images):
+        # convert tensor back to numpy array for visualization
+        ax[id].imshow((image / 2 + 0.5).numpy().transpose(1,2,0))
+        ax[id].set_title(classes[labels[id]])
 
     ################################ Define the neural network (NN) ########################################
     class Network(nn.Module):
@@ -196,10 +215,14 @@ def neural_network():
 
         # Perform forward pass and predict labels
         predicted_labels = net(inputs)
+    
+        print('Predicted Labels Size =', predicted_labels.shape)
+        print(predicted_labels)
+        print('Labels Size =', labels.shape)
 
         # Calculate loss
         loss = criterion(predicted_labels, labels)
-        
+
         # Perform back propagation and compute gradients
         loss.backward()
         
@@ -245,7 +268,6 @@ def neural_network():
 
 
 if __name__ == '__main__':
-    try:
-        neural_network()
-    except rospy.ROSInterruptException:
-        pass
+    
+    neural_network()
+    
