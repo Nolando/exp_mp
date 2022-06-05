@@ -6,7 +6,6 @@
 # FOR REALSENSE INSTALL: sudo apt-get install ros-melodic-realsense2-camera
 # FOR REALSENSE INFO: https://github.com/IntelRealSense/realsense-ros
 
-from numpy import dtype
 import rospy
 import cv2 as cv
 from cv_bridge import CvBridge
@@ -82,10 +81,7 @@ class listener:
                         # Using hf/2 in case the shirt covers bottoms of face height
                         if xe <= xf and xf + wf <= xe + we and yf + hf/2 < ye:
 
-                            print("Confirmed enemy spotted")
-
-                            # Get the whole bounding box
-                            # self.whole_bounding_box_R = [[xe, yf, we, hf+he]]
+                            # print("Confirmed enemy spotted")
 
                             # Add the bounding box to the frame
                             self.converted_frame = camera_functions.bounding_box_to_frame([[xe, yf, we, hf+he]], self.converted_frame, (0, 0, 255))
@@ -94,12 +90,6 @@ class listener:
                             # Publish the heart location
                             to_publish = np.array([xe+we/2], dtype=np.float32)
                             target_pub.publish(to_publish)
-                            
-                
-                # camera_functions.show_image("Bounding Box Over Enemy", self.converted_frame)
-
-                # print(self.face_boxes)
-                # print(self.enemy_boxes)
 
             # Test green shirt and face detected
             if self.faced_detected and self.homie_seen:
@@ -120,14 +110,11 @@ class listener:
             else:
                 print("\t\t\tnope")
 
-            # Show the bounding box and frames
-            # COULD PUBLISH THIS TO GUI??? HERE
-
             # Convert from CV2 image to ROS compressed image
-            # publish_frame.data = bridge.cv2_to_compressed_imgmsg(self.converted_frame.tobytes(), dst_format='jpg')
+            publish_frame.data = bridge.cv2_to_compressed_imgmsg(self.converted_frame.tobytes(), dst_format='jpg')
 
             # Publish the frame with bounding boxes
-            # gui_pub.publish(publish_frame)
+            gui_pub.publish(publish_frame)
 
             camera_functions.show_image("DJANGO VISION", self.converted_frame)
 
@@ -137,9 +124,7 @@ class listener:
     # Camera callback
     def django_eyes(self, frame):
 
-        # print(type(frame.data))
-
-        # global converted_frame - WORKING
+        # global converted_frame
         self.converted_frame = camera_functions.camera_bridge_convert(frame)
 
         # Boolean to track camera subscription
@@ -157,8 +142,8 @@ class listener:
         # Log some info about the image topic
         # rospy.loginfo("listener\tFACE")
 
-        # Save bounding box data into a CV2 suitable format - CHANGE TO THIS IN SUBMITTED CODE
-        # self.face_boxes = listener.convert_box_format(self, b_box)
+        # Save bounding box data into a CV2 suitable format
+        self.face_boxes = listener.convert_box_format(self, b_box)
 
         # Save bounding box as a converted 2D numpy array for iteration
         self.face_boxes = np.array([b_box.data], int)
@@ -182,8 +167,8 @@ class listener:
         # Log some info about the image topic
         # rospy.loginfo("listener\tENEMY DETECTED")
 
-        # Save bounding box data into a CV2 suitable format - CHANGE TO THIS IN SUBMITTED CODE
-        # self.enemy_boxes = listener.convert_box_format(self, b_box)
+        # Save bounding box data into a CV2 suitable format
+        self.enemy_boxes = listener.convert_box_format(self, b_box)
 
         # Save bounding box as a converted 2D numpy array for iteration
         self.enemy_boxes = np.array([b_box.data], int)
@@ -207,8 +192,8 @@ class listener:
         # log some info about the image topic
         # rospy.loginfo("listener\tHOMIE SIGHTED")
 
-        # Save bounding box data into a CV2 suitable format - CHANGE TO THIS IN SUBMITTED CODE
-        # self.homie_boxes = listener.convert_box_format(self, b_box)
+        # Save bounding box data into a CV2 suitable format
+        self.homie_boxes = listener.convert_box_format(self, b_box)
 
         # Save bounding box as a converted 2D numpy array for iteration
         self.homie_boxes = np.array([b_box.data], int)

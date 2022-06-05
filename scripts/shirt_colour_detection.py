@@ -36,32 +36,40 @@ def camera_callback(frame):
     # Convert RGB into HSV
     hsv_frame = cv.cvtColor(converted_frame, cv.COLOR_BGR2HSV)
 
-    # Get the red and green colour masks
+    # Get the red and green colour masks using HSV thresholds
     mask_R = red_mask(hsv_frame)
     mask_G = green_mask(hsv_frame)
 
+    # RGB
+    # rgb_mask = cv.inRange(converted_frame, np.array([0, 0, 50]), np.array([52, 52, 255]))  
+
+    # L*a*b* with Otsu threshold on A-channel
+    # lab_frame = cv.cvtColor(converted_frame, cv.COLOR_BGR2LAB)
+    # th = cv.threshold(lab_frame[:,:,1], 127, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)[1]
+
     # Colour segment to get the bounding box for shirts for red and green
     shirt_bounding_box_R = colour_segmentation(mask_R)          # np.ndarray float32
-    shirt_bounding_box_G = colour_segmentation(mask_G)
+    # shirt_bounding_box_G = colour_segmentation(mask_G)
     
     # Convert to 1D array from 2D
     shirt_bounding_box_R = shirt_bounding_box_R.flatten()
-    shirt_bounding_box_G = shirt_bounding_box_G.flatten()
+    # shirt_bounding_box_G = shirt_bounding_box_G.flatten()
 
     # Test if the returned variable contains a detected face bounding box
     if shirt_bounding_box_R.size is not 0:
 
-        # Log message
         # rospy.loginfo('shirt_detection\tDETECTED RED SHIRT ' + np.array2string(shirt_bounding_box_R))
 
         # Publish the bounding box
         shirt_box_pub_R.publish(shirt_bounding_box_R)
 
     # Disabling for now until green shirt bought
-    if shirt_bounding_box_G.size is not 0:
+    # if shirt_bounding_box_G.size is not 0:
 
         # rospy.loginfo('shirt_detection\tDETECTED GREEN SHIRT ' + np.array2string(shirt_bounding_box_G))
-        shirt_box_pub_G.publish(shirt_bounding_box_G)
+
+        # Publish bounding box
+        # shirt_box_pub_G.publish(shirt_bounding_box_G)
 
 #################################################################################
 # The red colour masks
@@ -99,7 +107,7 @@ def colour_segmentation(mask):
     frame_bw = cv.morphologyEx(mask_filtered, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    camera_functions.show_image("Morph Op", frame_bw)
+    # camera_functions.show_image("Post Morph Op", frame_bw)
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(frame_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
