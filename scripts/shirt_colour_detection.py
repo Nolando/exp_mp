@@ -6,7 +6,6 @@
 import rospy
 import cv2 as cv
 import numpy as np
-from std_msgs.msg import Int64MultiArray
 from sensor_msgs.msg import CompressedImage
 import camera_functions
 from rospy_tutorials.msg import Floats
@@ -19,7 +18,6 @@ shirt_box_pub_G = rospy.Publisher("/django/eagle_eye/bounding_box_homies", numpy
 # Set the limits for the colours (in HSV)
 red_low_limit_lower = np.array([0, 100, 90])           # Red
 red_high_limit_lower = np.array([5, 255, 255])
-# red_low_limit_upper = np.array([169, 88, 90])           # Red
 red_low_limit_upper = np.array([160, 88, 90])           # Red
 red_high_limit_upper = np.array([180, 255, 255])
 
@@ -54,25 +52,16 @@ def camera_callback(frame):
     if shirt_bounding_box_R.size is not 0:
 
         # Log message
-        # rospy.loginfo('shirt_detection\tDETECTED RED SHIRT SLAVE MASTER ' + np.array2string(shirt_bounding_box_R))
+        # rospy.loginfo('shirt_detection\tDETECTED RED SHIRT ' + np.array2string(shirt_bounding_box_R))
 
-        # PUBLISH THE BOUNDING BOX
+        # Publish the bounding box
         shirt_box_pub_R.publish(shirt_bounding_box_R)
 
-        # Test for checking box is correct
-        # for (x, y, w, h) in shirt_bounding_box_R:
-        #     cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
-        # camera_functions.show_image("shirt_detection node RED", converted_frame)
-
-    # Disabling for now until green shirt bought - NEED TO FIX THRESHOLDS
+    # Disabling for now until green shirt bought
     if shirt_bounding_box_G.size is not 0:
-        # rospy.loginfo('shirt_detection\tDETECTED GREEN SHIRT HOMIES ' + np.array2string(shirt_bounding_box_G))
-        shirt_box_pub_G.publish(shirt_bounding_box_G)
 
-        # Test for checking box is correct
-        # for (x, y, w, h) in shirt_bounding_box_G:
-        #     cv.rectangle(converted_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        # camera_functions.show_image("shirt_detection node", converted_frame)
+        # rospy.loginfo('shirt_detection\tDETECTED GREEN SHIRT ' + np.array2string(shirt_bounding_box_G))
+        shirt_box_pub_G.publish(shirt_bounding_box_G)
 
 #################################################################################
 # The red colour masks
@@ -100,13 +89,17 @@ def colour_segmentation(mask):
 
     # Initially empty bounding box
     shirt_box = []
+    
+    # Apply median filter to remove salt pepper noise
+    # mask_gauss = cv.GaussianBlur(mask, (5,5), 0)
+    mask_filtered = cv.medianBlur(mask, 9)
 
     # Morphological close to help detections with large kernel size - filters out noise
     kernel = np.ones((25, 25), np.uint8)
-    frame_bw = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+    frame_bw = cv.morphologyEx(mask_filtered, cv.MORPH_CLOSE, kernel)
 
     # Display the red shirt detection
-    # camera_functions.show_image("Morph Op", frame_bw)
+    camera_functions.show_image("Morph Op", frame_bw)
 
     # Find the valid contours in the bw image for the regions detected
     contours = cv.findContours(frame_bw, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
